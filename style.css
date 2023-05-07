@@ -1,5 +1,5 @@
 
-    * {
+    .CollectionItem >* {
         width: 688px;
         line-height: 200%;
         margin: 0 auto; 
