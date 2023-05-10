@@ -2,17 +2,21 @@
     .CollectionItem  * {
         width: 688px;
         line-height: 200%;
-        margin: 0 auto; 
+        margin: 35px auto; 
         display: block;
     }
 
     .ContentItem-time{
+        width: 688px;
         font-weight: lighter;
-        margin-bottom: 25px;
-        margin-top: 25px;
+        margin: 25px auto;
+        display: block;
+    }
+    .ContentItem-time * {
+        display: inline;
     }
 
-    .CollectionItem  h1, h2, h3, h4, h5, h6, p, img, video {
+    /* .CollectionItem  h1, h2, h3, h4, h5, h6, p, img, video {
         padding-top: 35px;
         padding-bottom: 35px;
-    }
+    } */
