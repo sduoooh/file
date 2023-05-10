@@ -1,22 +1,21 @@
 
-    .CollectionItem  * {
-        width: 688px;
+    .CollectionItem  *{
+        width: 43rem;
         line-height: 200%;
-        margin: 35px auto; 
+        margin: 2.2rem auto; 
         display: block;
     }
 
     .ContentItem-time{
-        width: 688px;
+        width: 43rem;
         font-weight: lighter;
-        margin: 25px auto;
+        margin: 1.6rem auto;
         display: block;
     }
     .ContentItem-time * {
         display: inline;
     }
 
-    /* .CollectionItem  h1, h2, h3, h4, h5, h6, p, img, video {
-        padding-top: 35px;
-        padding-bottom: 35px;
-    } */
+    .CollectionItem  b {
+        display: inline;
+    } 
