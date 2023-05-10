@@ -19,3 +19,7 @@
     .CollectionItem  b {
         display: inline;
     } 
+
+    .CollectionItem  p > a {
+        display: inline;
+    } 
