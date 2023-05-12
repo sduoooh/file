@@ -1,0 +1,208 @@
+<div class="CollectionItem"><div></div><h1>使用 Github API 更新仓库</h1><div class="RichText ztext Post-RichText css-1g0fqss" options="[object Object]"><h2 data-first-child="">0. 总览</h2><p data-pid="mD9SO7tb">本文为大家提供一种使用 GitHub API 更新 GitHub 仓库的方法。通常我们会使用 Git 客户端 Commit 然后 Push 到 GitHub，但 GitHub 为我们提供了相关 API，在某些情况下可以直接通过 API 更新仓库。</p><p data-pid="AAYhrcpN">在此之前有一些前置知识点，你需要了解 git 的储存原理。碰巧最近掘金有一篇很火的<a class="wrap external" href="https://link.zhihu.com/?target=https%3A//juejin.im/post/5c33f49de51d45523070f7bb" rel="nofollow noreferrer" target="_blank">文章</a>有提到相关知识。</p><p class="ztext-empty-paragraph"><br/></p><img loading="lazy" onerror="this.src='https://collection.sduoooh.me/使用_Github_API_更新仓库54877720/img/0.jpg';this.onerror=null;" src="./img/0.jpg" aspect-ratio ="1.3445378151260505"><p class="ztext-empty-paragraph"><br/></p><p data-pid="iIjkumZX">使用 GitHub API 更新仓库只需六步。虽然对于第一次接触的新手来说可能会有点复杂，但是理清关系之后思路便会很清晰了。</p><ol><li data-pid="eDwfFhzw">获取 Ref：Ref 指 <a class="wrap external" href="https://link.zhihu.com/?target=https%3A//git-scm.com/book/zh/v2/Git-%25E5%2586%2585%25E9%2583%25A8%25E5%258E%259F%25E7%2590%2586-Git-%25E5%25BC%2595%25E7%2594%25A8" rel="nofollow noreferrer" target="_blank">Git 的引用</a>。如果要发起 Commit，必须知道你的 Commit 要提交到什么地方去（Commit 是一个接一个的链状关系，所以需要知道上一个 Commit 的信息），这一步做的就是这件事。</li><li data-pid="e0hdRYte">获取 Commit：用于获取当前 Commit 的 tree 的 sha。</li><li data-pid="PtyL5HIN">生成 Blob：相当于正常本地提交的 add 操作，可以参考<a class="wrap external" href="https://link.zhihu.com/?target=https%3A//juejin.im/post/5c33f49de51d45523070f7bb%23heading-7" rel="nofollow noreferrer" target="_blank">这里</a>的解释。</li><li data-pid="CFfM9erv">生成 Tree：构建一个新的 tree，把上一步生成的 Blob 放到合适的位置。这里需要用到的参数 base_tree 就是来自第二步的 Commit 信息。</li><li data-pid="TJho9jc1">生成 Commit：提交你的 tree，这步跟正常 commit 很接近，不过要你手动找到此次提交的上一次提交，借哈希值把新的 Commit 接起来。</li><li data-pid="yBSvYWMp">更新 Ref：使 master 的指针指到你最新提交的版本。</li></ol><p data-pid="pI14KPqt">注意：访问 POST 方法的接口必须带 token，虽然 GET 可以不带，但是会限制访问频率，所以建议都带上。相关文档：<a class="external" href="https://link.zhihu.com/?target=https%3A//developer.github.com/v3/%23authentication" rel="nofollow noreferrer" target="_blank"><span class="invisible">https://</span><span class="visible">developer.github.com/v3</span><span class="invisible">/#authentication</span><span class="ellipsis"></span></a></p><h2>1. 获取 Ref</h2><h2>1.1 文档地址</h2><p data-pid="6YMiVjVT"><a class="external" href="https://link.zhihu.com/?target=https%3A//developer.github.com/v3/git/refs/%23get-a-reference" rel="nofollow noreferrer" target="_blank"><span class="invisible">https://</span><span class="visible">developer.github.com/v3</span><span class="invisible">/git/refs/#get-a-reference</span><span class="ellipsis"></span></a></p><h2>1.2 请求地址</h2><p data-pid="n9GsBwBg"><code>GET https://api.github.com/repos/ssshooter/test/git/refs/heads/master</code></p><h2>1.3 返回数据</h2><div class="highlight"><pre><code class="language-js"><span class="p">{</span>
+  <span class="s2">"ref"</span><span class="o">:</span> <span class="s2">"refs/heads/master"</span><span class="p">,</span>
+  <span class="s2">"node_id"</span><span class="o">:</span> <span class="s2">"MDM6UmVmMTY0Nzk4NDczOm1hc3Rlcg=="</span><span class="p">,</span>
+  <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/refs/heads/master"</span><span class="p">,</span>
+  <span class="s2">"object"</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">"sha"</span><span class="o">:</span> <span class="s2">"cda66de943082033f4b761639df77728d7bca4f0"</span><span class="p">,</span>
+    <span class="s2">"type"</span><span class="o">:</span> <span class="s2">"commit"</span><span class="p">,</span>
+    <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/commits/cda66de943082033f4b761639df77728d7bca4f0"</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><h2>2. 获取 Commit</h2><h2>2.1 文档地址</h2><p data-pid="pzYFZMyD"><a class="external" href="https://link.zhihu.com/?target=https%3A//developer.github.com/v3/git/commits/%23get-a-commit" rel="nofollow noreferrer" target="_blank"><span class="invisible">https://</span><span class="visible">developer.github.com/v3</span><span class="invisible">/git/commits/#get-a-commit</span><span class="ellipsis"></span></a></p><h2>2.2 请求地址</h2><p data-pid="SC7bUbhw"><code>GET https://api.github.com/repos/ssshooter/test/git/commits/cda66de943082033f4b761639df77728d7bca4f0</code></p><h2>2.3 返回数据</h2><div class="highlight"><pre><code class="language-js"><span class="p">{</span>
+  <span class="s2">"sha"</span><span class="o">:</span> <span class="s2">"cda66de943082033f4b761639df77728d7bca4f0"</span><span class="p">,</span>
+  <span class="s2">"node_id"</span><span class="o">:</span> <span class="s2">"MDY6Q29tbWl0MTY0Nzk4NDczOmNkYTY2ZGU5NDMwODIwMzNmNGI3NjE2MzlkZjc3NzI4ZDdiY2E0ZjA="</span><span class="p">,</span>
+  <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/commits/cda66de943082033f4b761639df77728d7bca4f0"</span><span class="p">,</span>
+  <span class="s2">"html_url"</span><span class="o">:</span> <span class="s2">"https://github.com/ssshooter/test/commit/cda66de943082033f4b761639df77728d7bca4f0"</span><span class="p">,</span>
+  <span class="s2">"author"</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">"name"</span><span class="o">:</span> <span class="s2">"DeJavuJo"</span><span class="p">,</span>
+    <span class="s2">"email"</span><span class="o">:</span> <span class="s2">"ssshooterx@gmail.com"</span><span class="p">,</span>
+    <span class="s2">"date"</span><span class="o">:</span> <span class="s2">"2019-01-09T06:02:07Z"</span>
+  <span class="p">},</span>
+  <span class="s2">"committer"</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">"name"</span><span class="o">:</span> <span class="s2">"GitHub"</span><span class="p">,</span>
+    <span class="s2">"email"</span><span class="o">:</span> <span class="s2">"noreply@github.com"</span><span class="p">,</span>
+    <span class="s2">"date"</span><span class="o">:</span> <span class="s2">"2019-01-09T06:02:07Z"</span>
+  <span class="p">},</span>
+  <span class="s2">"tree"</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">"sha"</span><span class="o">:</span> <span class="s2">"d7a57d28ace0db12773c7d70675f94a48da6421f"</span><span class="p">,</span>
+    <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/trees/d7a57d28ace0db12773c7d70675f94a48da6421f"</span>
+  <span class="p">},</span>
+  <span class="s2">"message"</span><span class="o">:</span> <span class="s2">"Create readme.md"</span><span class="p">,</span>
+  <span class="s2">"parents"</span><span class="o">:</span> <span class="p">[</span>
+  <span class="p">],</span>
+  <span class="s2">"verification"</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">"verified"</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="s2">"reason"</span><span class="o">:</span> <span class="s2">"valid"</span><span class="p">,</span>
+    <span class="s2">"signature"</span><span class="o">:</span> <span class="s2">"-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJcNY5fCRBK7hj4Ov3rIwAAdHIIABh8I89hATqg1mSYtpx1aY\nJt/woDobMO7FGE5qXO0NNrCMqwF6mdPJOMMMZvVWF1ULTm8ZJ52GAh5xAnPMZEnQ\n8tTjj/Qc0eZCm5B1xO66rgx+7eKkeGUPJj5bX7Lf0i9Se70Ff0jaCdH94RgiSL2d\nclDLhNyM4u6AH//k7S3Ud1O6ezXd4+99381Xa331PDLhJttUAbRFRCThszbcxRUT\nPvyhPNvXB5ug4J+tAMaZJvZEaED0c1k2Yx1+TYkLvPjOlqXvqaDVpMZieluD5l+f\nu13NAoCnLfBe0Skak/8MxRDbMcJYNW78ll60HAa6jJtElD8Vkek8WoVAZ8p3iIE=\n=xI87\n-----END PGP SIGNATURE-----\n"</span><span class="p">,</span>
+    <span class="s2">"payload"</span><span class="o">:</span> <span class="s2">"tree d7a57d28ace0db12773c7d70675f94a48da6421f\nauthor DeJavuJo  1547013727 +0800\ncommitter GitHub  1547013727 +0800\n\nCreate readme.md"</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><h2>3. 生成 Blob</h2><h2>3.1 文档地址</h2><p data-pid="dZwJp00F"><a class="external" href="https://link.zhihu.com/?target=https%3A//developer.github.com/v3/git/blobs/%23create-a-blob" rel="nofollow noreferrer" target="_blank"><span class="invisible">https://</span><span class="visible">developer.github.com/v3</span><span class="invisible">/git/blobs/#create-a-blob</span><span class="ellipsis"></span></a></p><h2>3.2 请求地址</h2><p data-pid="FUwAGeaW"><code>POST https://api.github.com/repos/ssshooter/test/git/blobs</code></p><h2>3.3 请求参数</h2><div class="highlight"><pre><code class="language-js"><span class="p">{</span>
+  <span class="s2">"content"</span><span class="o">:</span> <span class="s2">"Content of the blob"</span><span class="p">,</span>
+  <span class="s2">"encoding"</span><span class="o">:</span> <span class="s2">"utf-8"</span>
+<span class="p">}</span>
+</code></pre></div><h2>3.4 返回数据</h2><div class="highlight"><pre><code class="language-js"><span class="p">{</span>
+    <span class="s2">"sha"</span><span class="o">:</span> <span class="s2">"929246f65aab4d636cb229c790f966afc332c124"</span><span class="p">,</span>
+    <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/blobs/929246f65aab4d636cb229c790f966afc332c124"</span>
+<span class="p">}</span>
+</code></pre></div><h2>4. 生成 tree</h2><h2>4.1 文档地址</h2><p data-pid="Q6Yc8Leq"><a class="external" href="https://link.zhihu.com/?target=https%3A//developer.github.com/v3/git/trees/%23create-a-tree" rel="nofollow noreferrer" target="_blank"><span class="invisible">https://</span><span class="visible">developer.github.com/v3</span><span class="invisible">/git/trees/#create-a-tree</span><span class="ellipsis"></span></a></p><h2>4.2 请求地址</h2><p data-pid="KcXNheqm"><code>POST https://api.github.com/repos/ssshooter/test/git/trees</code></p><h2>4.3 请求参数</h2><p data-pid="4CPFrHis">注意：tree.path 可以写深层目录，如 deep/deep/newFile.md（前面不用写斜杠）</p><div class="highlight"><pre><code class="language-js"><span class="p">{</span>
+  <span class="s2">"base_tree"</span><span class="o">:</span> <span class="s2">"d7a57d28ace0db12773c7d70675f94a48da6421f"</span><span class="p">,</span> <span class="c1">// commit tree 的 sha
+</span><span class="c1"></span>  <span class="s2">"tree"</span><span class="o">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="s2">"path"</span><span class="o">:</span> <span class="s2">"apiCommitFile.md"</span><span class="p">,</span> <span class="c1">// 文件路径
+</span><span class="c1"></span>      <span class="s2">"mode"</span><span class="o">:</span> <span class="s2">"100644"</span><span class="p">,</span> <span class="c1">// 类型，详情看文档
+</span><span class="c1"></span>      <span class="s2">"type"</span><span class="o">:</span> <span class="s2">"blob"</span><span class="p">,</span>
+      <span class="s2">"sha"</span><span class="o">:</span> <span class="s2">"929246f65aab4d636cb229c790f966afc332c124"</span> <span class="c1">// 刚才生成的 blob 的 sha
+</span><span class="c1"></span>    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div><h2>4.4 返回数据</h2><div class="highlight"><pre><code class="language-js"><span class="p">{</span>
+    <span class="s2">"sha"</span><span class="o">:</span> <span class="s2">"2b3a65095ceb7cf4425f52d59ca5974d826cff80"</span><span class="p">,</span>
+    <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/trees/2b3a65095ceb7cf4425f52d59ca5974d826cff80"</span><span class="p">,</span>
+    <span class="s2">"tree"</span><span class="o">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"path"</span><span class="o">:</span> <span class="s2">"readme.md"</span><span class="p">,</span>
+            <span class="s2">"mode"</span><span class="o">:</span> <span class="s2">"100644"</span><span class="p">,</span>
+            <span class="s2">"type"</span><span class="o">:</span> <span class="s2">"blob"</span><span class="p">,</span>
+            <span class="s2">"sha"</span><span class="o">:</span> <span class="s2">"b1b716105590454bfc4c0247f193a04088f39c7f"</span><span class="p">,</span>
+            <span class="s2">"size"</span><span class="o">:</span> <span class="mi">5</span><span class="p">,</span>
+            <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/blobs/b1b716105590454bfc4c0247f193a04088f39c7f"</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">"path"</span><span class="o">:</span> <span class="s2">"tree"</span><span class="p">,</span>
+            <span class="s2">"mode"</span><span class="o">:</span> <span class="s2">"040000"</span><span class="p">,</span>
+            <span class="s2">"type"</span><span class="o">:</span> <span class="s2">"tree"</span><span class="p">,</span>
+            <span class="s2">"sha"</span><span class="o">:</span> <span class="s2">"91d8d59147e395effaeacd01c9d8553b37cf77c5"</span><span class="p">,</span>
+            <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/trees/91d8d59147e395effaeacd01c9d8553b37cf77c5"</span>
+        <span class="p">}</span>
+    <span class="p">],</span>
+    <span class="s2">"truncated"</span><span class="o">:</span> <span class="kc">false</span>
+<span class="p">}</span>
+</code></pre></div><h2>5. 生成 Commit</h2><h2>5.1 文档地址</h2><p data-pid="0V9timJA"><a class="external" href="https://link.zhihu.com/?target=https%3A//developer.github.com/v3/git/commits/%23create-a-commit" rel="nofollow noreferrer" target="_blank"><span class="invisible">https://</span><span class="visible">developer.github.com/v3</span><span class="invisible">/git/commits/#create-a-commit</span><span class="ellipsis"></span></a></p><h2>5.2 请求地址</h2><p data-pid="Ze2eUd8g"><code>POST https://api.github.com/repos/ssshooter/test/git/commits</code></p><h2>5.3 请求参数</h2><div class="highlight"><pre><code class="language-js"><span class="p">{</span>
+  <span class="s2">"message"</span><span class="o">:</span> <span class="s2">"a Commit with GitHub api"</span><span class="p">,</span>
+  <span class="s2">"parents"</span><span class="o">:</span> <span class="p">[</span>
+    <span class="s2">"cda66de943082033f4b761639df77728d7bca4f0"</span> <span class="c1">// 上次 commit 的sha
+</span><span class="c1"></span>  <span class="p">],</span>
+  <span class="s2">"tree"</span><span class="o">:</span> <span class="s2">"2b3a65095ceb7cf4425f52d59ca5974d826cff80"</span>
+<span class="p">}</span>
+</code></pre></div><h2>5.4 返回数据</h2><div class="highlight"><pre><code class="language-js"><span class="p">{</span>
+    <span class="s2">"sha"</span><span class="o">:</span> <span class="s2">"45c58a9358b67fc81e4034cb36c5196d791686ef"</span><span class="p">,</span>
+    <span class="s2">"node_id"</span><span class="o">:</span> <span class="s2">"MDY6Q29tbWl0MTY0Nzk4NDczOjQ1YzU4YTkzNThiNjdmYzgxZTQwMzRjYjM2YzUxOTZkNzkxNjg2ZWY="</span><span class="p">,</span>
+    <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/commits/45c58a9358b67fc81e4034cb36c5196d791686ef"</span><span class="p">,</span>
+    <span class="s2">"html_url"</span><span class="o">:</span> <span class="s2">"https://github.com/ssshooter/test/commit/45c58a9358b67fc81e4034cb36c5196d791686ef"</span><span class="p">,</span>
+    <span class="s2">"author"</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">"name"</span><span class="o">:</span> <span class="s2">"ssshooter"</span><span class="p">,</span>
+        <span class="s2">"email"</span><span class="o">:</span> <span class="s2">"ssshooterx@gmail.com"</span><span class="p">,</span>
+        <span class="s2">"date"</span><span class="o">:</span> <span class="s2">"2019-01-09T10:24:10Z"</span>
+    <span class="p">},</span>
+    <span class="s2">"committer"</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">"name"</span><span class="o">:</span> <span class="s2">"ssshooter"</span><span class="p">,</span>
+        <span class="s2">"email"</span><span class="o">:</span> <span class="s2">"ssshooterx@gmail.com"</span><span class="p">,</span>
+        <span class="s2">"date"</span><span class="o">:</span> <span class="s2">"2019-01-09T10:24:10Z"</span>
+    <span class="p">},</span>
+    <span class="s2">"tree"</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">"sha"</span><span class="o">:</span> <span class="s2">"2b3a65095ceb7cf4425f52d59ca5974d826cff80"</span><span class="p">,</span>
+        <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/trees/2b3a65095ceb7cf4425f52d59ca5974d826cff80"</span>
+    <span class="p">},</span>
+    <span class="s2">"message"</span><span class="o">:</span> <span class="s2">"a Commit with GitHub api"</span><span class="p">,</span>
+    <span class="s2">"parents"</span><span class="o">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"sha"</span><span class="o">:</span> <span class="s2">"cda66de943082033f4b761639df77728d7bca4f0"</span><span class="p">,</span>
+            <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/commits/cda66de943082033f4b761639df77728d7bca4f0"</span><span class="p">,</span>
+            <span class="s2">"html_url"</span><span class="o">:</span> <span class="s2">"https://github.com/ssshooter/test/commit/cda66de943082033f4b761639df77728d7bca4f0"</span>
+        <span class="p">}</span>
+    <span class="p">],</span>
+    <span class="s2">"verification"</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">"verified"</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+        <span class="s2">"reason"</span><span class="o">:</span> <span class="s2">"unsigned"</span><span class="p">,</span>
+        <span class="s2">"signature"</span><span class="o">:</span> <span class="kc">null</span><span class="p">,</span>
+        <span class="s2">"payload"</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><h2>6. 更新 Ref</h2><h2>6.1 文档地址</h2><p data-pid="aopgezBB"><a class="external" href="https://link.zhihu.com/?target=https%3A//developer.github.com/v3/git/refs/%23update-a-reference" rel="nofollow noreferrer" target="_blank"><span class="invisible">https://</span><span class="visible">developer.github.com/v3</span><span class="invisible">/git/refs/#update-a-reference</span><span class="ellipsis"></span></a></p><h2>6.2 请求地址</h2><p data-pid="MMTJU5Et"><code>https://api.github.com/repos/ssshooter/test/git/refs/heads/master</code></p><h2>6.3 请求参数</h2><div class="highlight"><pre><code class="language-js"><span class="p">{</span>
+    <span class="s2">"sha"</span><span class="o">:</span><span class="s2">"45c58a9358b67fc81e4034cb36c5196d791686ef"</span><span class="p">,</span>
+    <span class="s2">"force"</span><span class="o">:</span><span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div><h2>6.4 返回数据</h2><div class="highlight"><pre><code class="language-js"><span class="p">{</span>
+    <span class="s2">"ref"</span><span class="o">:</span> <span class="s2">"refs/heads/master"</span><span class="p">,</span>
+    <span class="s2">"node_id"</span><span class="o">:</span> <span class="s2">"MDM6UmVmMTY0Nzk4NDczOm1hc3Rlcg=="</span><span class="p">,</span>
+    <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/refs/heads/master"</span><span class="p">,</span>
+    <span class="s2">"object"</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">"sha"</span><span class="o">:</span> <span class="s2">"45c58a9358b67fc81e4034cb36c5196d791686ef"</span><span class="p">,</span>
+        <span class="s2">"type"</span><span class="o">:</span> <span class="s2">"commit"</span><span class="p">,</span>
+        <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"https://api.github.com/repos/ssshooter/test/git/commits/45c58a9358b67fc81e4034cb36c5196d791686ef"</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><h2>7. node.js 实践代码</h2><div class="highlight"><pre><code class="language-js"><span class="kd">var</span> <span class="nx">updateGitHubRes</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">blob</span><span class="p">,</span> <span class="nx">path</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">commitSha</span>
+  <span class="kd">var</span> <span class="nx">commitTreeSha</span>
+  <span class="k">return</span> <span class="nx">getRef</span><span class="p">()</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(({</span> <span class="nx">data</span> <span class="p">})</span> <span class="p">=&gt;</span> <span class="p">{</span>
+      <span class="nx">commitSha</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">object</span><span class="p">.</span><span class="nx">sha</span>
+      <span class="k">return</span> <span class="nx">getCommit</span><span class="p">(</span><span class="nx">commitSha</span><span class="p">)</span>
+    <span class="p">})</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(({</span> <span class="nx">data</span> <span class="p">})</span> <span class="p">=&gt;</span> <span class="p">{</span>
+      <span class="nx">commitTreeSha</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">tree</span><span class="p">.</span><span class="nx">sha</span>
+      <span class="k">return</span> <span class="nx">createBlob</span><span class="p">(</span><span class="nx">blob</span><span class="p">)</span>
+    <span class="p">})</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(({</span> <span class="nx">data</span> <span class="p">})</span> <span class="p">=&gt;</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">blobSha</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">sha</span>
+      <span class="k">return</span> <span class="nx">createTree</span><span class="p">(</span><span class="nx">commitTreeSha</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="nx">blobSha</span><span class="p">)</span>
+    <span class="p">})</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(({</span> <span class="nx">data</span> <span class="p">})</span> <span class="p">=&gt;</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">treeSha</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">sha</span>
+      <span class="k">return</span> <span class="nx">createCommit</span><span class="p">(</span><span class="nx">commitSha</span><span class="p">,</span> <span class="nx">treeSha</span><span class="p">)</span>
+    <span class="p">})</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(({</span> <span class="nx">data</span> <span class="p">})</span> <span class="p">=&gt;</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">newCommitSha</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">sha</span>
+      <span class="k">return</span> <span class="nx">updataRef</span><span class="p">(</span><span class="nx">newCommitSha</span><span class="p">)</span>
+    <span class="p">})</span>
+    <span class="p">.</span><span class="k">catch</span><span class="p">(</span><span class="nx">err</span> <span class="p">=&gt;</span> <span class="p">{</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+    <span class="p">})</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">getRef</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="nx">axios</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="sb">`/</span><span class="si">${</span><span class="nx">owner</span><span class="si">}</span><span class="sb">/</span><span class="si">${</span><span class="nx">repo</span><span class="si">}</span><span class="sb">/git/refs/heads/master`</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">getCommit</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">commitSha</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="nx">axios</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="sb">`/</span><span class="si">${</span><span class="nx">owner</span><span class="si">}</span><span class="sb">/</span><span class="si">${</span><span class="nx">repo</span><span class="si">}</span><span class="sb">/git/commits/</span><span class="si">${</span><span class="nx">commitSha</span><span class="si">}</span><span class="sb">`</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">createBlob</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">content</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="nx">axios</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="sb">`/</span><span class="si">${</span><span class="nx">owner</span><span class="si">}</span><span class="sb">/</span><span class="si">${</span><span class="nx">repo</span><span class="si">}</span><span class="sb">/git/blobs`</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">content</span><span class="p">,</span>
+    <span class="nx">encoding</span><span class="o">:</span> <span class="s1">'utf-8'</span>
+  <span class="p">})</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">createTree</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">base_tree</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="nx">sha</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="nx">axios</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="sb">`/</span><span class="si">${</span><span class="nx">owner</span><span class="si">}</span><span class="sb">/</span><span class="si">${</span><span class="nx">repo</span><span class="si">}</span><span class="sb">/git/trees`</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">base_tree</span><span class="p">,</span> <span class="c1">// commit tree 的 sha
+</span><span class="c1"></span>    <span class="nx">tree</span><span class="o">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="nx">path</span><span class="p">,</span> <span class="c1">// 文件路径
+</span><span class="c1"></span>        <span class="nx">mode</span><span class="o">:</span> <span class="s1">'100644'</span><span class="p">,</span> <span class="c1">// 类型，详情看文档
+</span><span class="c1"></span>        <span class="nx">type</span><span class="o">:</span> <span class="s1">'blob'</span><span class="p">,</span>
+        <span class="nx">sha</span> <span class="c1">// 刚才生成的 blob 的 sha
+</span><span class="c1"></span>      <span class="p">}</span>
+    <span class="p">]</span>
+  <span class="p">})</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">createCommit</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">parentCommitSha</span><span class="p">,</span> <span class="nx">tree</span><span class="p">,</span> <span class="nx">message</span> <span class="o">=</span> <span class="s1">'update post'</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="nx">axios</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="sb">`/</span><span class="si">${</span><span class="nx">owner</span><span class="si">}</span><span class="sb">/</span><span class="si">${</span><span class="nx">repo</span><span class="si">}</span><span class="sb">/git/commits`</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">message</span><span class="p">,</span>
+    <span class="nx">parents</span><span class="o">:</span> <span class="p">[</span><span class="nx">parentCommitSha</span><span class="p">],</span><span class="c1">// 上次 commit 的sha
+</span><span class="c1"></span>    <span class="nx">tree</span>
+  <span class="p">})</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">updataRef</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">newCommitSha</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="nx">axios</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="sb">`/</span><span class="si">${</span><span class="nx">owner</span><span class="si">}</span><span class="sb">/</span><span class="si">${</span><span class="nx">repo</span><span class="si">}</span><span class="sb">/git/refs/heads/master`</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">sha</span><span class="o">:</span> <span class="nx">newCommitSha</span><span class="p">,</span>
+    <span class="nx">force</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">})</span>
+<span class="p">}</span>
+</code></pre></div><h2>参考文献</h2><p data-pid="x5Tpj4JL"><a class="external" href="https://link.zhihu.com/?target=https%3A//int128.hatenablog.com/entry/2017/09/05/161641" rel="nofollow noreferrer" target="_blank"><span class="invisible">https://</span><span class="visible">int128.hatenablog.com/e</span><span class="invisible">ntry/2017/09/05/161641</span><span class="ellipsis"></span></a><br/><a class="external" href="https://link.zhihu.com/?target=https%3A//juejin.im/post/5c33f49de51d45523070f7bb" rel="nofollow noreferrer" target="_blank"><span class="invisible">https://</span><span class="visible">juejin.im/post/5c33f49d</span><span class="invisible">e51d45523070f7bb</span><span class="ellipsis"></span></a><br/><a class="wrap external" href="https://link.zhihu.com/?target=https%3A//git-scm.com/book/zh/v2/Git-%25E5%2586%2585%25E9%2583%25A8%25E5%258E%259F%25E7%2590%2586-Git-%25E5%25BC%2595%25E7%2594%25A8" rel="nofollow noreferrer" target="_blank">https://git-scm.com/book/zh/v2/Git-内部原理-Git-引用</a></p></div><link href="../style.css" rel="stylesheet"/><div class="ContentItem-time" role="button" tabindex="0"><a href="https://zhuanlan.zhihu.com/p/54877720">发布于 2019-01-15 08:28</a><span>发布于 2019-01-15 08:28</span></div></div>
