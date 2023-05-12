@@ -374,8 +374,8 @@
        }
 
        .CollectionItem .ReferenceList,
-       .CollectionItem .img,
-       .CollectionItem .video {
+       .CollectionItem img,
+       .CollectionItem video {
         display: block !important;
        }
 
