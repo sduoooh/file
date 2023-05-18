@@ -1,0 +1,319 @@
+大号寄了，小号存档前言本来这篇文章准备晚点再发的，结果看到了有人拿类型写了个象棋 徐飞：用 TypeScript 类型运算实现一个中国象棋程序 ，我蚌埠住了，直接给你们把我珍藏的类型体操天花板拿出来，用 TypeScript 的类型实现一个 Lisp 解释器。不说废话直接线上成果，下面这段 Lisp 代码的意思是，我声明了一个 acc(x) 函数，这个函数的作用是递归从 x 一直累加到 0，比如 acc(3) 就是 3 + 2 + 1 + 0 = 6，如下面代码所示：type _Test = EvalProgram<`
+    (def zero 0)
+
+    (def acc (x) 
+        (if (== x zero) 
+            x
+            (+ x (acc (- x 1))) 
+        )
+    )
+
+    (acc 3)
+`>我们已经知道了 (acc 3) 的结果是 6 了 ，那我们来检验一下我们用类型运算出来的结果，真的是 6：可以直接点击下面链接在线体验，体验完尝试看看代码再回来我们再来讲这是如何实现的：基本结构我们造一个简易的 Lisp 解释器主要分成两个步骤：解析器 —— 将字符串解析成抽象语法树（AST）词法分析 —— 将字符串解析成一个 Token 数组（可以理解成分解成独立的单词）语法分析 —— 将上面的 Token 数组经过解析生成抽象语法树（AST）求值器 —— 对抽象语法树进行求值得到最后的结果指令声明变量声明函数求值基本运算表达式求值，如： + 、- 、== 、!=条件表达式求值：if函数调用表达式求值，如：(acc 3)我们 Lisp 解释的代码也就是分成这几个大块，大家看代码的时候可以对应着看。基础知识补充再开始实现我们的 Lisp 解释器事前，我们需要先补充一些基础的函数式语言的知识和技巧。虽说前端天天提函数式，但实际有纯函数式语言的前端其实凤毛麟角，所以补充下基本的技巧非常有必要。TypeScript 的类型是一门独立的「纯函数式编程语言」Q：为什么我们能拿 TypeScript 的 Type 做那么多骚操作？比如本文的例子，写一个 Lisp 解释器？A：因为 TypeScript 的类型是一门独立的「纯函数式编程语言」。所以我们需要用看待一门编程语言的视角来看看待 TypeScript 的类型，才能理解为什么类型能做那么多骚操作。这里举一个非常简单的例子来让大家重新认识 TypeScript 的类型，下面的 JavaScript 代码和 TypeScript 类型运算的代码实际上干的是同样的事情，并且能得到同样的结果：// javascript 实现
+const foo = (a, b) => a + b;
+const result = bar(1, 2) // => 3
+
+// typescript 类型实现
+type Foo<A extends number,B extends number>
+    = Add<A, B>
+type Result = Foo<1, 2> // => 3
+在线试试上面的例子：类型与值类型我们可以简单看成一个值的集合，它里面只包含一个值，比如字面量类型 1、hello 也有可能有无限个值比如 strng 、number 等等。而我们在做类型运算的时候，比如 Add<1, 2> 我们希望得到的结果是 3 而不是 number ，所以我们在做类型运算的时候对 类型里面再分出来「类型」和「值」出来：比如下面是常见的例子的对比：值 （仅包含一个元素的类型）类型 （包含不止一个元素的类型）type A = 1type AType = number、1 | 2type A = 'hello'type AType = string、'foo' | 'bar'type A = [1, 2, 'hello']type AType = number[]、[number, string]type A = { hello: 'world' }type AType = { hello: string }再加上两个常用的类型：any —— 全集never —— 空集extends 与分支条件最后再说一个 extends 运算的操作，A extends B ? C : D 的意义是判断 A 集合是否为 B 集合的子集，如果是那么返回 C 否则返回 D。extends 在做运算的时候主要是两个用途：<值> extends <值> ? : 判断两个值是否相等，可以类比 javascript 的 <值> === <值> ? :<值> extends <类型> ? : 判断一个值是否属于某个类型，可以类比成 typeof <值> === <类型> ? :举个例子：type Func<T> =
+    T /*值*/ extends string /*类型*/? (
+        T /*值*/ extends 'foo' /*值*/ ? 'is string foo'
+        : T /*值*/ extends 'bar' /*值*/ ? 'is string bar'
+        : 'unexpected string value'
+    )
+    : T /*值*/ extends number /*类型*/? (
+        T /*值*/ extends 0 /*值*/? 'is number 0'
+        : T /*值*/ extends 1 /*值*/? 'is number 1'
+        : 'unexpected number value'
+    )
+    : 'unexpected value type';在线体验：变量声明通过 type T = ... 声明全局变量（ts 文件作用域）通过 A extends infer B 声明局部变量，可以类比纯函数式语言里面的 let B = A in xxx。举个例子：type A = 'hello'; // 声明全局变量
+type B = [A] extends infer T ? (
+    T // => 在这个表达式的作用域内，T 都为 [A]
+) : never  // 声明局部变量
+函数声明与调用把 TypeScript 的泛型当做函数声明和调用，可以类比 JavaScript 的函数声明：type Func<A extends number, B extends string = 'hello'> = [A, B]
+//     ↑ ↑           ↑    ↑           ↑        ↑        ↑
+// 函数名 参数名    参数类型  参数名       参数类型  默认值      函数体
+
+type Test = Func<10, 'world'> // => [10, 'world']
+
+function Func(A: number, B: string = 'hello') { return [A, B] }
+const Test = Func(10, 'world') // => [10, 'world']
+没有高阶函数不影响表达能力把 TypeScript 类型当成一门纯函数式编程语言其实不算准确，比如 TypeScript 类型就缺少一个标志性的能力「First-Class-Function」，在表现上就是没有高阶函数，但是这并不影响他的表达能力。具体的不展开讲了，可以看一下面这个回答，如果我们把一个环境（闭包）当成参数传递给函数，那意味着并不需要高阶函数一样能实现闭包的效果。Function(Arguments, Process, {\color{red}{Environment}}) \rightarrow Return + {\color{red}{Environment'}}模式匹配我们都知道 extends 后面可以接一个 infer 用来提取变量，一般我们会把跟 JavaScript 的解构拿来做类比，事实上这个能力叫做模式匹配，他会先做我们上面说的集合的运算，之后结果能匹配才会将里面的结构拆解出来。我们在这里介绍几个常见的技巧：用于拆出来数组和字符串第一个元素的匹配，常用语递归一个数组里面的每一个元素：// 递归处理数组常用的匹配
+type Test0 = [0, 1, 2] extends [infer Head, ...infer Tail] 
+    ? { head: Head, tail: Tail } 
+    : never;
+    
+// 递归处理字符串常用的匹配
+type Test1 = `abcdefg` extends `${infer Head}${infer Tail}` 
+    ? { head: Head, tail: Tail } 
+    : never;通过构造一个新结构一次性匹配多个变量：type Func<A, B> = [A, B] extends [1, 2] 
+    ? 'match 1 2'
+    : 'not match';通过构造一个带类型的新结构来避免 infer 变量的类型丢失：type OnlyNumber<N extends number> = N;
+type Tmp<A extends number> = { a: A };
+type Test0 = { a: 10 } extends Tmp<infer A> // infer A 只能是 number 类型
+    ? OnlyNumber<A> // 不报错
+    : never;递归与尾递归我在上面的小节里面讲了一些基本的语法和技巧，但是问题来了。循环去哪儿了？这里要提出一个「反常识」的概念了：递归和循环等价！所以在纯函数式编程语言里面往往用递归代替循环。并且可以得到以下推论：任何循环都可以用递归实现任何递归都可以用循环实现普通递归不做赘述，用下面两个例子为例为例演示用 TypeScript 类型实现递归运算：// 遍历数组
+type ArrayStuct<Head extends string, Tail extends string[]> = [Head, ...Tail];
+
+type Join<Arr extends string[], Sp extends string>
+  = Arr extends [] ? ''
+  : Arr extends ArrayStuct<infer Head, []> ? Head
+  : Arr extends ArrayStuct<infer Head, infer Tail> ? `${Head}${Sp}${Join<Tail, Sp>}`
+  : never; 
+
+type Test = Join<['foo', 'bar', 'hello'], ','> 
+// => type Test = "foo,bar,hello" 
+// 遍历树
+type NodeType = string | NodeType[];
+type NodeArrayStruct<Head extends NodeType, Tail extends NodeType[]> = [Head, ...Tail]
+
+type NodeArrayToString<NodeArray extends NodeType[]>
+  = NodeArray extends NodeArrayStruct<infer Head, []> ? NodeToString<Head>
+  : NodeArray extends NodeArrayStruct<infer Head, infer Tail> ? `${NodeToString<Head>}, ${NodeArrayToString<Tail>}`
+  : '';
+
+type NodeToString<Node extends NodeType>
+  = Node extends string ? Node
+  : Node extends NodeType[] ? `(${NodeArrayToString<Node>})`
+  : ''; 
+
+type Test = NodeToString<['123', ['456', '789'], ['1112']]>
+// => type Test = "(123, (456, 789), (1112))"
+尾递归 & 尾递归转循环 & 通用递归转循环在纯函数式编程语言里面，由于没有只能用递归代替循环，但是就会遇到一个非常尴尬的问题「爆栈」，所以函数式编程用尾递归（尾调用）的方式解决了这个问题。在 TypeScript 类型运算里面函数栈只有 50 层，几乎做不了任何复杂的运算，但是 TypeScript 在 4.5-beta 版里已经支持了类型运算的尾递归优化，用尾递归的方式来写递归极限可以达到 1000 层，远超原来的 50 层。这一小节展开来讲非常耗时，大家可以通过我的另外两篇文章来补充关于递归的知识：循环转尾递归在尾递归章节的文章里面已经讨论过了，递归和循环实际上是等价的，并且已经讨论过如何将递归/尾递归转换成循环。既然等价，那也一定有办法将循环转换成尾递归。说白了循环是什么？无非就是一个一段代码不断执行罢了，同上面的高阶函数小结我们给循环一个定义：\begin{aligned} Process(Environment) \rightarrow & Environment' \\  Test(Environment) \rightarrow & True | False\\ Loop(Test,Process, Environment)  \rightarrow & if (Test(Environment)) \\  & then \ Loop(Test, Process, Process(Environment)) \\ & else \ Environment \end{aligned} 我们把上面定义用代码实现一下就可以得到一个通用的将循环函数转成尾递归的方法，比如我们要将下面循环转成尾递归：function join(arr) {
+  const l = arr.length;
+  let i = 0
+  let result = ''
+  while (i < l) {
+    result += arr[i]
+    if (i != l - 1) {
+      result += ','
+    }
+    i++
+  }
+  return result
+}照着上面的公式写就行将上面的循环转换成下面的尾递归形式：// Loop
+const loop = (test, process, env) => test(env) 
+	? loop(test, process, process(env))
+	: env
+
+function join(arr) {
+  const env = {
+    arr,
+    l: arr.length,
+    i: 0,
+    result: '',
+  }
+  const newEnv = loop(
+    env => env.i < env.l, // Test
+    env => { // Process
+      const newEnv = {...env}
+      newEnv.result += newEnv.arr[newEnv.i]
+      if (newEnv.i != newEnv.l - 1) {
+    	newEnv.result += ','
+      }
+      newEnv.i++
+      return newEnv
+    },
+    env // Env
+  )
+  return newEnv.result
+}用上面的方法，可以把任何的循环转换成尾递归形式，但是因为 TypeScript 类型不支持高阶函数，所以只能耦合 Loop / Process 和 Test，并且简化 Environment ，比如如下用类型实现的尾递归版本 Join例子，就没有明确的 Loop / Process / Test 和 Environment 的定义，但其实都耦合在函数里面：/ 遍历数组
+type ArrayStuct<Word extends string, Tail extends string[]> = [Word, ...Tail];
+
+type Join<Arr extends string[], Sp extends string, Result extends string = ''>
+  = Arr extends [] ? Result
+  : Arr extends ArrayStuct<infer Word, []> ? `${Result}${Word}`
+  : Arr extends ArrayStuct<infer Word, infer Tail> ? Join<Tail, Sp, `${Result}${Word}${Sp}`>
+  : never; 
+
+type Test = Join<['foo', 'bar', 'hello'], ','> 
+// => type Test = "foo,bar,hello" 
+尾递归遍历树如何用尾递归遍历树这种数据结构？组合一下上两节的知识就行了：递归遍历树 --(通用递归转循环)--> 循环遍历树循环遍历树 --(循环转尾递归)--> 尾递归遍历树这里再强调一下重点，在用循环遍历一个树的时候，需要记录两个维度的信息才能明确我现在遍历的位置，以及下一步需要遍历的位置：纵向（下图绿色所示）：表示我遍历的深度，一般用栈表示。横向（下图红色所示）：表示我遍历到第几个子节点，这个有很多方法只要能标记哪些子节点已经遍历过了，那些未遍历即可。这里给一个简单的运算加减表达式树的例子，虽然这个例子有更简单的解法（详见前缀式表达式运算），这里给了一个在栈上保留了更多上下文的更为通用的实现方式：type OperatorType = '+' | '-';
+type NodeType = number | OpNodeType;
+type OpNodeType = [OperatorType, NodeType, NodeType];
+type UnitOpNode<Op extends OperatorType, Left extends number, Right extends number> 
+    = OpNode<Op, Left, Right>;
+type OpNode<Op extends OperatorType, Left extends NodeType, Right extends NodeType> 
+    = [Op, Left, Right];
+
+type FrameType = NodeType;
+type StackType = FrameType[];
+type PushStack<Frame extends NodeType, Stack extends StackType> = [Frame, ...Stack];
+
+type Eval<Stack extends StackType>
+    = Stack extends PushStack<infer Top, infer TailStack> ? (
+        [Top, TailStack] extends [number, []] ? Top // 返回结果
+        : Top extends UnitOpNode<'+', infer L, infer R> ? Eval<PushStack<Add<L, R>, TailStack>>
+        : Top extends UnitOpNode<'-', infer L, infer R> ? Eval<PushStack<Sub<L, R>, TailStack>>
+        : Top extends number ? Eval<Return<Top, TailStack>>
+        : Top extends OpNode<OperatorType, OpNodeType, NodeType> ? Eval<PushStack<Top[1], Stack>>
+        : Top extends OpNode<OperatorType, number, OpNodeType> ? Eval<PushStack<Top[2], Stack>>
+        : never
+    )
+    : never;
+
+type Return<Value extends number, Stack extends StackType> 
+    = Stack extends PushStack<infer Top, infer Tail> ? (
+        Top extends OpNode<OperatorType, OpNodeType, NodeType> ? PushStack<OpNode<Top[0], Value, Top[2]>, Tail>
+        : Top extends OpNode<OperatorType, number, OpNodeType> ? PushStack<OpNode<Top[0], Top[1], Value>, Tail>
+        : never
+    )
+    : never;
+
+type Test = Eval<[['+', ['+', 1, 2] , ['-', 4, 3]]]>
+// => Test = 4
+在线体验：实现 Lisp 解释器基础知识补充完了以后我们开始实现解释器，开始着手实现解释。基本加减乘除运算TypeScript 类型并不能直接对数值进行运算，连最简单的 1 + 1 都无法运算，这个问题曾困扰广大体操运动员很久，直到有一天我们发现了数组可以通过 ['length'] 取出数值，既然我们不能直接操作数值，但是我们通过操作数组来代替操作数值并且求值，我们提出想法后我们的某个聪明过人的同事就把他实现了出来，加减乘除如下所示：// 基本运算
+export type NArray<T, N extends number> = N extends N ? (number extends N ? T[] : _NArray<T, N, []>) : never
+type _NArray<T, N extends number, R extends unknown[]> = R['length'] extends N ? R : _NArray<T, N, [T, ...R]>
+type NArrayNumber<L extends number> = NArray<number, L>
+
+// 加法
+export type Add<M extends number, N extends number> = [...NArrayNumber<M>, ...NArrayNumber<N>]['length']
+
+// 减法
+export type Subtract<M extends number, N extends number> =
+    NArrayNumber<M> extends [...x: NArrayNumber<N>, ...rest: infer R] ? R['length'] : unknown
+
+// 主要用于辅助推导乘除法; 否则会因为 Subtract 返回类型为 number | unknown 报错
+type _Subtract<M extends number, N extends number> =
+    NArrayNumber<M> extends [...x: NArrayNumber<N>, ...rest: infer R] ? R['length'] : -1
+
+// 乘法
+type _Multiply<M extends number, N extends number, res extends unknown[]> =
+    N extends 0 ? res['length'] : _Multiply<M, _Subtract<N, 1>, [...NArray<number, M>, ...res]>
+export type Multiply<M extends number, N extends number> = _Multiply<M, N, []>
+
+// 除法
+type _DivideBy<M extends number, N extends number, res extends unknown[]> =
+    M extends 0 ? res["length"] : _Subtract<M, N> extends -1 ? unknown : _DivideBy<_Subtract<M, N>, N, [unknown, ...res]>
+export type DividedBy<M extends number, N extends number> = N extends 0 ? unknown : _DivideBy<M, N, []>;词法分析词法分析过程也比较简单，我挑选 Lisp 的语法进行实现，就是因为 Lisp S 表达式非常容易解析，解析的过程非常简单，核心代码如下，整体逻辑就是一种类型一种类型的 Token 逐个尝试，直到试到能被解析的为止，并进行下一步：type Tokenize<Input extends string, Tokens extends TokenType[] = []>
+    = Input extends '' ? TokenResult<Tokens, ''>
+    : ParseSpace<Input> extends TokenResult<infer R, infer Next> ? Tokenize<Next, [...Tokens, ...R]>
+    : ParseIdentifier<Input> extends TokenResult<infer R, infer Next> ? Tokenize<Next, [...Tokens, ...R]>
+    : ParseNumber<Input> extends TokenResult<infer R, infer Next> ? Tokenize<Next, [...Tokens, ...R]>
+    : ParsePair<Input> extends TokenResult<infer R, infer Next> ? Tokenize<Next, [...Tokens, ...R]>
+    : ParseSymbol<Input> extends TokenResult<infer R, infer Next> ? Tokenize<Next, [...Tokens, ...R]>
+    : TokenError<'Unexpted char'>ParseXXX 的实现都是从头一个一个字符尝试，匹配的技巧字匹配模式小结讲过，尝试到不能解析的位置为止，比如以 ParseIndentifier 为例：type ParseIdentifier<Input extends string>
+    = Input extends `${infer Char}${infer Next}` ? (
+        Char extends AlphaChars ? _ParseIdentifierBody<Next, Char>
+        : TokenError<'Can not match identifier'>
+    )
+    : TokenError<'Can not match identifier'>
+    ;
+
+type _ParseIdentifierBody<Input extends string, Matched extends string>
+    = Input extends `${infer Char}${infer Next}` ? (
+        Char extends AlphaChars | NumberChars ? _ParseIdentifierBody<Next, `${Matched}${Char}`>
+        : TokenResult<[Matched], Input>
+    )
+    : TokenResult<[Matched], Input>
+    ;经过这个过程，最后将一串字符串转换成一串 Token 数组：语法分析语法分析部分核心代码如下所示，核心过程就是：如果遇到 ( 符号入栈如果遇到 ) 符号出栈，讲栈顶一整个数组当成一个项加入新的栈顶的数组如果遇到其他符号，直接将符号加入栈顶的数组type NodeType = TokenType | NodeType[];
+type _SafeTokens<Tokens> = Safe<Tokens, TokenType[], []>;
+type _SafeToken<Token> = Safe<Token, TokenType, 0>;
+
+type NodeStackType = NodeType[][];
+type NodeStackPush<Stack extends NodeStackType, Top extends NodeType[],> = [...Stack, Top];
+type NodeStackPopResult<Stack extends NodeStackType, Top extends NodeType[]> = { stack: Stack, top: Top };
+type NodeStackPop<Stack extends NodeStackType>
+    = Stack extends [...infer Tail, infer Top] ? NodeStackPopResult<Safe<Tail, NodeStackType, []>, Safe<Top, NodeType[], []>>
+    : ErrorResult<'Can not pop empty stack'>;
+
+type ParseError = ErrorResult<'ParseError'>;
+
+type _Parse<Tokens extends TokenType[], Stack extends NodeStackType = [[]]>
+    = Tokens extends [infer Token, ...infer Next] ? (
+        Token extends '(' ? _Parse<_SafeTokens<Next>, NodeStackPush<Stack, []>>
+        : NodeStackPop<Stack> extends NodeStackPopResult<infer TailStack, infer Top> ? (
+            Token extends ')' ? (
+                NodeStackPop<TailStack> extends NodeStackPopResult<infer _TailStack, infer _Top>
+                ? _Parse<_SafeTokens<Next>, NodeStackPush<_TailStack, [..._Top, Top]>>
+                : ParseError
+            )
+            : _Parse<_SafeTokens<Next>, NodeStackPush<TailStack, [...Top, Safe<Token, TokenType, 0>]>>
+        )
+        : ParseError
+    )
+    : Stack;声明变量和函数带代码执行的过程中，需要有一个环境来维持代码所以来的变量，比如我们需要执行 x + 1 ，这个表达式无法直接运算，而是现需要从环境里面找到 x 是多少才能进行运算。所以我们先要声明环境的类型，并且定义好在环境连怎么存变量和函数：type Func<Args extends string[], Body extends NodeType> = { args: Args, body: Body }
+type FuncType = Func<string[], NodeType>
+type ValueType = number | FuncType;
+type EnvType = { [name: string]: ValueType }
+type MergeEnv<Env extends EnvType, Append extends EnvType> = Omit<Env, keyof Append> & Append;在代码执行到 def 的时候，需要将变量和函数的声明放到环境中：type _DefStat<Name extends string, Expr extends NodeType> = ['def', Name, Expr];
+type _DefFunc<Name extends string, Args extends string[], Body extends NodeType> = ['def', Name, Args, Body];
+
+type _EvalProgram<Stats extends NodeType[], Env extends EnvType, R extends number>
+    = Stats extends [infer Stat, ...infer NextStats] ? (
+        NextStats extends NodeType[] ? (
+            Stat extends _DefFunc<infer Name, infer Args, infer Body> ? (
+                _EvalProgram<NextStats, MergeEnv<Env, { [name in Name]: Func<Args, Body> }>, 0>
+            )
+            : Stat extends _DefStat<infer Name, infer Expr> ? (
+                _EvalExpr<[EvalStackFrame<'id', [Expr], [], Env>]> extends EvalResult<infer R, infer _> ? (
+                    _EvalProgram<NextStats, MergeEnv<Env, { [name in Name]: R }>, R>
+                )
+                : EvalError<'8'>
+            )
+            : Stat extends NodeType ? (
+                _EvalExpr<[EvalStackFrame<'id', [Stat], [], Env>]> extends EvalResult<infer R, infer _> 
+                    ? _EvalProgram<NextStats, Env, R> 
+                    : EvalError<'7'>
+            )
+            : EvalError<'9'>
+        )
+        : EvalError<'10'>
+    )
+    : EvalResult<R, Env>
+    ;最后的效果就是下面这幅图的 env 字段里面环境：对表达式进行求值这里对表达式求值跟递归与尾递归章节类似，唯一的区别就是在运算的过程中会带着 Env 参数，这里面存着当前环境里面变量的值。核心代码如下：type _EvalExpr<Stack extends EvalStackType>
+    = EvalStackPop<Stack> extends EvalStackPopResult<infer TailStack, infer Frame> ? (
+        Frame extends EvalStackFrame<infer Callee, infer Left, infer Right, infer Env> ?
+        [Callee, Right, Left] extends ['if', [infer Test], [infer Consequent, infer Alternate]] ? (
+            Test extends 0 ? _Return<Safe<Alternate, NodeType, 0>, TailStack>
+            : _Return<Safe<Consequent, NodeType, 0>, TailStack>
+        )
+        : (Left extends [infer E, ...infer Next] ? (
+            E extends number ? _EvalExpr<EvalStackPush<TailStack, EvalStackFrame<Callee, Safe<Next, NodeType[], []>, [...Right, E], Env>>>
+            : E extends string ? (
+                Env[E] extends number ? _EvalExpr<EvalStackPush<TailStack, EvalStackFrame<Callee, Safe<Next, NodeType[], []>, [...Right, SafeNum<Env[E]>], Env>>>
+                : EvalError<'0'>
+            )
+            : E extends [infer NextCallee, ...infer NextLeft] ? (
+                NextCallee extends string ? (
+                    NextLeft extends NodeType[] ? (
+                        _EvalExpr<
+                            EvalStackPush<
+                                EvalStackPush<TailStack, EvalStackFrame<Callee, Safe<Next, NodeType[], []>, Right, Env>>,
+                                EvalStackFrame<NextCallee, NextLeft, [], Env>
+                            >
+                        >
+                    ) : EvalError<'1'>
+                ) : EvalError<'2'>
+            )
+            : EvalError<'3'>
+        )
+            : (
+                [Callee, Right] extends ['+', [infer L, infer R]] ? _Return<SafeNum<Add<SafeNum<L>, SafeNum<R>>>, TailStack>
+                : [Callee, Right] extends ['-', [infer L, infer R]] ? _Return<SafeNum<Subtract<SafeNum<L>, SafeNum<R>>>, TailStack>
+                : [Callee, Right] extends ['!=', [infer L, infer R]] ? _Return<L extends R ? 0 : 1, TailStack>
+                : [Callee, Right] extends ['==', [infer L, infer R]] ? _Return<L extends R ? 1 : 0, TailStack>
+                : [Callee, Right] extends ['id', [infer V]] ? _Return<Safe<V, NodeType, 0>, TailStack>
+                : (
+                    Env[Callee] extends Func<infer Names, infer Body>
+                    ? _EvalExpr<EvalStackPush<TailStack, EvalStackFrame<'id', [Body], [], FuncEnv<Names, Right, Env>>>>
+                    : EvalError<'4'>
+                )
+
+            ))
+        : EvalError<'5'>
+    )
+    : EvalError<'6'>;
+
+type _Return<Expr extends NodeType, Stack extends EvalStackType>
+    = EvalStackPop<Stack> extends EvalStackPopResult<infer TailStack, EvalStackFrame<infer Callee, infer Left, infer Right, infer Env>>
+    ? (
+        Expr extends number ? _EvalExpr<EvalStackPush<TailStack, EvalStackFrame<Callee, Left, [...Right, Expr], Env>>>
+        : _EvalExpr<EvalStackPush<TailStack, EvalStackFrame<Callee, [Expr, ...Left], Right, Env>>>
+    ) : (
+        Expr extends number ? EvalResult<Expr, {}>
+        : EvalError<'7'>
+    )需要着重注意的是 if 表达式需要先计算条件表达式是否为 true 以后才会去执行后面的表达式，所以 if 需要单独处理。另外考虑函数是如何调用的？其实这里的函数调用非常简单，我们只需要把函数调用替换成一个带着参数环境的表达式即可，处理的过程甚至比 if 还更简单。写在最后写完这篇文章以后我已经不准备在玩类型体操了，真的玩到天花板了，接下来研究的方向应该是深入 TypeScript 类型系统本身，看看还有没有什么能做。完结撒花~

@@ -1,0 +1,319 @@
+<div class="CollectionItem"><div></div><h1>【小号存档】TypeScript 类型体操天花板，用类型运算写一个 Lisp 解释器</h1><div class="RichText ztext Post-RichText css-1g0fqss" options="[object Object]"><blockquote data-first-child="" data-pid="yXTKXWn4">大号寄了，小号存档</blockquote><a class="LinkCard new" data-draft-node="block" data-draft-type="link-card" data-image="https://pic1.zhimg.com/equation_ipico.jpg" data-image-height="120" data-image-width="120" data-text="brambles：TypeScript 类型体操天花板，用类型运算写一个 Lisp 解释器" href="https://zhuanlan.zhihu.com/p/427309936" target="_blank"><span class="LinkCard-contents"><span class="LinkCard-title loading" data-text="true"></span><span class="LinkCard-desc loading"></span></span><span class="LinkCard-image LinkCard-image--default"></span></a><h2>前言</h2><p data-pid="BLisMIzC">本来这篇文章准备晚点再发的，结果看到了有人拿类型写了个象棋 <a class="internal" href="https://zhuanlan.zhihu.com/p/426966480">徐飞：用 TypeScript 类型运算实现一个中国象棋程序</a> ，我蚌埠住了，直接给你们把我珍藏的类型体操天花板拿出来，用 TypeScript 的类型实现一个 Lisp 解释器。</p><p data-pid="vDgJ6_cj">不说废话直接线上成果，下面这段 Lisp 代码的意思是，我声明了一个 <code>acc(x)</code> 函数，这个函数的作用是递归从 <code>x</code> 一直累加到 <code>0</code>，比如 <code>acc(3)</code> 就是 <code>3 + 2 + 1 + 0 = 6</code>，如下面代码所示：</p><div class="highlight"><pre><code class="language-text">type _Test = EvalProgram&lt;`
+    (def zero 0)
+
+    (def acc (x) 
+        (if (== x zero) 
+            x
+            (+ x (acc (- x 1))) 
+        )
+    )
+
+    (acc 3)
+`&gt;</code></pre></div><p data-pid="jOzaabco">我们已经知道了 <code>(acc 3)</code> 的结果是 <code>6</code> 了 ，那我们来检验一下我们用类型运算出来的结果，真的是 <code>6</code>：</p><img loading="lazy" onerror="this.src='https://collection.sduoooh.me/【小号存档】TypeScript_类型体操天花板，用类型运算写一个_Lisp_解释器626636607/img/0.jpg';this.onerror=null;" src="./img/0.jpg" aspect-ratio ="2.1417624521072796"><p data-pid="1EbL-CLK">可以直接点击下面链接在线体验，体验完尝试看看代码再回来我们再来讲这是如何实现的：</p><p class="ztext-empty-paragraph"><br/></p><a class="LinkCard new" data-draft-node="block" data-draft-type="link-card" data-text="https://www.typescriptlang.org/play?ts=4.5.0-beta#code/PTAEmlbRV6MCldGj5QYf8Iyug4uUOQGhfgMPnKgDtXgGwHsBDAEwEsA7Ac1EBC3QN9NAX1MCx5QFetBg+MFE5eQPO1AKdUCFNqEKlQgL8VApuaB75UCncoHYlQA2mgADlA0HKBZxMigCACkCmpIHk-3QEoCAKAAuATwAOAU1AB9ACq2AzudABeUAFEAbkR4AAoATgRUIUQAtgA8AAamoEmg2iS2AGagAF62YaAADEamicmpGaBEAMaVKQAeRqAlyaVkmdqe3rXZuQQNTc0Dtf0DpQDUoF3aVTXaALQToACMRiuNI0lFzUX9U9WgAMxFcQB8xaYgoIBf6oA05oAL8YDp3qa2tdYEIR5WdqAAcgCCIZFLDEnAAaH6gZ7mWwUEiuUAUACuUQARrljl5wZDobDwQB+FKIlG5CG1KEwuHfUD4pwAbQAuqAAFyOP4AohA0E-MH044NZkUWx+XIWGz2ByswHAsGUrHk+FI1EhMEAJRJZJxCIoAGsKAQAO4UHkY5U0gDkeGhVHMAAtTQzZTjKfjVczxf9JZzvtzOQA6P3KumnT72CXs74K3IxAAyauxcMJivR3lDQITuTBUdO5zAgAKlQCrNk8Xm8PqLQL8SCQYgBZWNytNKzGkuPyokhJOgGl+n0p8Ot6vHMFdnsRkIxb7HOlmi3UG124oXQDzigXnq93qBg6AAMoI5HmSKVczV2s4+vS4-xkdJ-rDvtV9EOuGdv21Zk3xVjgegLshNzmZmUdJiQDKlQBNc1LVnBlmU1HV9QoecwEAbjlAEDI6BkEAUPjAEqlQAK40AH+1AA05QATNLzABuUBADIVQBMJWYbBAC45Lcdz3KoPEAFfjAD21QBvH0AaPV6PrUAAB9QBg3UDVAQBSo0ATFSRS+Bxt13fdDxrB8W0VM9lPrK9mjfSM73PDsuxfH53TDEcP0HP0f3cf8KEAkJQIZZ0pwg20oNAWZFgQ0B8ILDcHCrBE8HMMhrDwIElKbOsRzUiKTyi0BLL04S4KNTxrz0-IQMspyZxcplHH8wLgtC6swVkxiFLHMFFk-J9u2M1M4rvcyfUswNC1XEsvgKoKQrCvTT0bdUL1bds-ICnriqraVuTa7NQGI6SxQAETIPwyDSAAhPr1LimUYuG1T4rcRLtREw1Ay8fpwqGgpMrcGkACJpyta0Htcsr5OYkqfnvfa3MWECktE10VrWzagQ+piD2+8dpo7IGKGa1rThXYt11LUH1tsEgtqPHbW2im6NIxPaboy-EEbyhxMfBmGZuOEjPOVNxxtAQBAHUAUYjFt8AE3mZ1xxpiHx2wAb3RuxmVNHxeZCU0wVyMIQmZHxQAAX0Zjdt2qNxXH5wXlVF8XbElrXKh1uWjoFwLmVVdXPM3IhAO5h3AKlUCMlyaEzbBJaMiIVnlOZ2yvfsbwg89igzfbJw9PDn9I-sak8t99J-cCxm5puQB1bUAMm9nesKpbAAYWtIgQjhbxTVAKvBNNAAdChTQ10tfjwaxS5LsvXH6SuiBr6vkX701KiHkgh9sIf0iHqgh9tATq7IIeACsh61Ie8CHqJTX6WvG-n00CCH6wh4ARyH2X99cIfzCHhEh78Ie9SH2oh8sIesm35pa9+IeNqHouh5LSHj4IeAAxIeABxIeAAJIeABJIeAApIeABpIeUYh5Vk-skWu3wh4AHkh5BCHgARSHsqIem4h5OCHgAVSHgANSHgAdSHgADSHgATSHgALSbtzXsipO7lwxKafIQ9FhDwAExD32EPAALEPAArEPAAbEPAA7EPAAHEPAAnPwjcQQiBkBCMIiu1dtBDyMIY0sm5LAogIHgcxPdq6jCHrMIeAAqIewAh6eCHscIeMQh4ADIh78SHgAQn4XNQAx5GAATzUATgCBamhNzFJaSKDS0VnjP67gQiUCoO2HJfMWaBXiDSYx5dbCZOhKUkIdJmQABIRZVlVicDJqToR6wqVWIg5hKjWmxnpOpFAnCinpNKSEekClFPbKbHWvTDxiyiAMoZ2NmT9MGcMkgYIBSklfDM1WQZSxjImV8bwczqDz3rMUIxXdbCbgLmbGIcCKDWARB4ZS1yqBgm2Rskgsy9xFNEaaU4zRvDvM+d8v6cRWnPMLuY1WrSALEm+JCDpIFqmuCeS82wY5IRgiruC-oWz1m7L0qaKu1JunZJliEouRAKDwgIB4NZOzQCuHxVfCFyRmRjOWTEKZoBoVfL5UkDOFxfIuHcBiHFeLC4hNAA3Coeo-ZPyzA8mpcC0gUCCukMgkYxWwpur8iVGITV6XhSLNFdlhEottTZdFmK4ggW0MMZIwi9Kt3bkQcxIEHAKt1dCA1RqQgbQICQIEGLSRgmERa5oAq6UNMZcy1l7KKWgCxvq1o4bSVbDJcklNDLTRMpZbqTNnKc1htyAW5IGdfLBr1bWiNUagRWp+SC6g-yKUjK7YU6gFqoUfK+da1Fzr7WlxCI6u1PxXXus9Ukb1ylfUd2nXCQSgjcgBvxEGx5Ibc2GtyJG6NhK42gBtQC3ZjqHWdPWHlQV5TDw0mvdjOkYITUWs2Py4tWShWvr7SQD9orR3mAtVKsAMrfzyoPS2vNkZTREGRIsKRNRFj7AqK4EgU9TkyWESk7do4i7AsHcU1xJHlJiJpbdZklG-qmkkSBAGdGqUyJAlIot9GbqmjkSBTDrGqOKJAvIvK3HmymhUSBJRXGqXqJAqosTVKtEgQ0UpqjuiQLaNk1RgxIE9F5XyI20sslHa2HLJWGM+NDqqms2iDELsCUWejCqT8A18gM25qZwC3UyDRn6nFWzf1ibeEc9WcaRUgRRlc-suKHnjMyU3N2qghHTKblI0UlUAXWwYg8649LykbVzu+LOyd87SRYr3UlsjqW+yxvMKVRzznvO2F8zEZUVUPOlQIwQIjH5jgWptpBo2jhZUeG8LJZLtX3y8YMZ57mCq+udvycl3tOz+0rbI2C4doGYXjqdbZUADqJ2Hfq5VlIS6jvTr0kR3doBFumXq2CK9QHb3To6Ym392g31AqozRsZqay3psraADlQyVJ1s+yMZN-7n3CsmzV3rpkfsTk-WB3k-Qf1JHJet37DH-sltyUDitbLQdZvrPW7Hf6elw5pAjop02dJAdR7t8V-RhvQbld4B7fZGOocw0QdVuH7mlgVcY0xbywMZaHa45bN0itleOwdl1FW3X4g9Q+ldf1xdmI3SBJ9VsX3CJA-VqHj7CdvDTSTqt4OC6mMp6ALH5usmA-LRmsnnK7eywg55Tn437uPJ1yEmxWrRePPsY4vAku9sDsy6AH70uaCVwdyOmPcKTvEiV8Vhd6vLta5uhH5ETi7sKsL0489DXL2tJ+29suH3LvMm+0BqlBOXelrdyDsH1oIfe+dzTw3wqfsga-U7p3OPAUt-1xb0cxP3dd57w7mH-fBaAdx8P9H7PfcmbG7BmpZeo+mlCaE6uoevhjLIDkaPY7Y89upxQOEylzmTIZN4Hksupd-an7DgfYzXDEsXwHnvvilfuBqMnSkKnOh1tmmVqbl-tCBfgSk9vpH6L-s1AGINoAbioeq2iAb9DdAboLJAWCNnqSOiLSlkggRXtyF2KgV+P6G1EmpgbYEtujmAd-oQWVlASQaAeQfAZfkgbVLQV2OgUWmLiYqOF+mwcvhUkQdAadpCGQXfpQQITQXSn-nQT6CIYwaXg4kXlHpIY-uAXDrIdwYoefvwUSsgT6EIfQRgQDqWrQgctYFCECkMmXA7hztvjBt4OYQSnEGUJkEQKAFInokYCcKABcIAA6mWcgAAOaAAbWYkoAAxKwRBmgAgeaAAKaYAGFynkNwtAgAEBaADLfoACHmnMc0ms5gVQWoFyBKTg0c9IZRouBA1gMQSWlRekrRlQVRooMQzKlgA2c0kKW4FRnRektUc6skxBZWzgTRDkDE2srguscOIsJyAxv6DSQqpoHRWo2acIPgUQzhb8nm0qouCIrg1oLRwx2xykWx1RPRFAfRYItRqxSQr+XYWxjxdICWIYUatSpYPhdK1R883wPx1R9IzciWZmv+wIahCyZm0JWS6hT+dgIqPI4JYojmYy8J0IsJrsYyjxAJooYI8WIuXwwJaQNxfxPwIJz+YJAiPxWxQQpx5xWxN29Jlx1R+J1grJaQoJH67YtU7xxa1gnxdJ5JlxQQTRQqLJykZJTy7JhJQp3JvxyJF03gYs7glRzIgp5gTRyaXJdsG4spDJTRFxbRMpbJlR1RO20pf0YxZWTgJieAkxh2KSwpIERp4pkpcOYWDpZATpVJYplpCpPIYIPpTR0o1JKp9MGB6xcOs+IOrwXJtg+xVgXKlx4KXxTBDSGIsZA+poCqDSGZJJYoCqWJ9+Uh4yz+oZlxSpFJlyHY9IDByQ-xCJoxc6eJGh3BsxGu6wYyVKVigapZLWUJpuEZgZnRjJZxppnR0ZDeAZcplREpzRWxeBzYHpi5XpA+7Zjpgp7ZTRihPZD6SQfZVGNii6R56w65E5JpvpeAK5tZnp1gEBUxt5u5L5+5l2D6e6Q5GJahFen4V5Wok55xzgO5lx1Bfo0x1gnJgYZuD6zIBZMsn5yQTu8FjgP5kJf5o585DJTJwIYFlREF1h4ZW4cJHZSJtgRJE4-RD6qFv6iFismORaWxmZCqQqQWN0spvJhslk40NsasC2jyMQRcPxieO2vhwlPxq5coBBMh9pahzpxIDgB5l2+6NSZZrg0lOIkB55F5oEbZUxwE+IbF3pcJDgUBXFVZHYsFyFVODFbwl2fIWZSFha2hjyDSmZoCmolQMQ-wVAD+m2RSIqp6lgSpVpGIYsZc-lzIfl6hRe0azIIVAlG4XlkcgJ3gqVPlvyIqlldgeG9gDCgQCIypocPe88mV1RaJvgFAfg6VoAYsNIFA0QxsaZZGTSoAhVeAxVgJqs3MVYuQVAtgPgNVQsNVekw1tVCpvw1gdgMI41NV4V3g+CUQZAh4E1YIaSlgBAmQ01s1JA6Ix+u12IVV-ggQ7Fz62Wh0E181k1eVEVlsfF7shuZE0IfgysY1BppYp1eAqa10zYvy22OZMsQqcQ31DSLSbSH2mZ31WxoCkQUQBKTKeAFo9gN+fyoAUYGQpqa5kZtgIqyoZAVA1o2NkUrYIq11ykE1VpriYslQgQKNdG9NtglFwgWNzImN6QlehSRNf4oEhNxN8sNV71fgyVX1AQd5lxcNzVdVMNkt8NBKvyY5JVIq9Y5NC1oo+Vvg4tdZpVstlRUtCNvJZwG4etE5eFNpN0ptXRdgYIBtqNf0Vtdti1VhgpdtIpJt2tj5UpNZlNntQZNtipvtgQsN8tzt6plxWp4F64upip6sJ1ft15y5PtDtCd1ttg1pydN0dpLpjpildkrpsxVtS5UpZFudWtwd8pAdIZpFuJJFjtodGtMZ4tHlxZNdzBSIH4DmcJXoPeVFnl3lE1Y4zVAVZqyWIqnVxVI9zYqtIGFNDt6teVriNI3ww9YIE9bg9otpNIxWzVzU3BK9CNrgIG29ZW69e9MBkI69R9dI-Q+ImVg9l2YW9WB9bgYI2Vx9gYIIj93dl9RVr9PeKJn9l2-VIQg1g9619VHYm10BbdQ9CNb9q21c4K7VjmvYMQ696IKxzQMZNVm+DRMkO+GVA9I1ZofcxKg8xKI8x9iwYIUiYI+wIGyx82FwgAV8o8CAANzqAOMPMB0NmukF5mDS8KOBbc2FbdTYMUXSafeUHRLRuU+cYfaQRTOXIcSHbSpQ+nbeNanXbTEHOkjSjXnRjVjYYwTTzYYxNWQZdjSPo8zSqPzZXhzeYJvVnaaK0BbCfS6b+MfXowQPfrYCfMVfqoY63FCCEE1VCHSN2bZckjBspOTI4MzOYAiGEy0XCSE7kOEyzblSzV1skko1qHBb+uZbYEkyk2FiJX4wE6GkrRyQUJ+K+ZcWbnRVTtoI4wZYdj4OffIaSFE3pb4JdcSHuoI9YKOEXXhQ04ReXbI50TozYyzU-ZYdk4AzVMIfY2CD4LPTVQNoU1TirGjbpX00kBNTSBswM3ZEM83UI0LKncBfhX6YKfXc1cJUzfMz-Reksx-Ss-6Gs23Wg8cxsyzhYzRYc7s83aWuIjs47tE8rO0yruYHM103C4470yC+VvCy84ngc6i0kPVm0+aTyc-li9i80A4MM6ONE9i2M1ORS8S0czc+M-k+s9o-Lc88jbY7A0gR8-THY2Y9VX4ANl-bSyC48wjRXgi2i44zNOs1szSyC5C30-K+sE5WDaWpIoqxsHlCq0TjIpC80wMMrGC0TnIk09Cxdti9Yy8zy8Tc482GaO4tyHOtFio3ZAGLMcU6UxQKk4BGg85qgx3ZmKGWZmgwbAK3k-c407K3lBa2yyzaY9a6MaaJ4g62Vk65AZE4Gok8k56367EHJFDIeDm9GJ+IWyG-U-k+q1G+K3G04wm1EgEsm4dqm5wem3upmyk1Zn9KqPiBlMyDQ2G9MwU5G8yNGwY3zTzTa3KGaB0O446yYy2wkyU1m-5oHMxoZo8eW0Ox2FW-YxOziGaOtDO6ffO+60u2FgwjUwqbkxM50RW43pG80Mc3M7u3CJlbozAavc66ACFRW80Bc4ED4Fc1S+cde1qEyxXfrSy642PNyCFR-bbcQ34HA--dW9K-y9s-e2sYa5bqaIohW9sH0ysHOVq9hyot+kWsRzPuovNr5G256wByM2FQqSI3KGIxra4pI0nZUVpbsTc5uRwTneG5MyKwSno5a5+5K5+yh5+0C7fWa+sPR3ZHZuc44GS9c+B2bVOSB2BwO7M2JxJ7VFJwp5s2h2bq6Kp0B3cwO9pyHU8+Kyc0I81Mi1a5XkC9+nlIeQMAp2cyBN9UKgp2CEw0R1hzPlomR15inK0YeC-Ynus0I4x3da-qaGkFPNKLvb4EI+7SZinK+9F2jWCLFYnsFe2vF+nRiGaMlxbC-fl6A+obB5maS+LaEOEPDaaeYFPXKFy3yzdbUxxdPZePlhUW17C3ZJF4i3ZPVpF0fUS8kBN4N+146LjfSNNyMJF3pNTBkK+zvfA5+7FYY9+8t0eQ14EE1xENEBXpN-8gNUNSNRAw1U1QjTAy-e1a+7t1++2pg5+HlgR6a6t8pOt+kJF2+6dml3Ogp+o6i0dz9Vcyc8y081B+40Z1K3y9RVo2dQo4dlwVMeD7S5Dydy17NwMuoSA2AzdzVQFx2Pd-YJQD8M1e1bbJ+AbJG3q2hRRyErorqz94NyVwdw+pDwp8KsJyEge9yJF3B8jxdDI8+Rj4Y8pWsEK3+8EGEKd7EAT216h65nL7Swa-+6WqF9E8z5hzr0TnNo5UF0b9h4sBC0xYwb53DlARY3gx7cd0ry1wVoFTLoMaWZuNx0wVL+ij8ZpYGt9Xj2d7KeocsVRaIe5UhUAA" href="https://link.zhihu.com/?target=https%3A//www.typescriptlang.org/play%3Fts%3D4.5.0-beta%23code/PTAEmlbRV6MCldGj5QYf8Iyug4uUOQGhfgMPnKgDtXgGwHsBDAEwEsA7Ac1EBC3QN9NAX1MCx5QFetBg%2BMFE5eQPO1AKdUCFNqEKlQgL8VApuaB75UCncoHYlQA2mgADlA0HKBZxMigCACkCmpIHk-3QEoCAKAAuATwAOAU1AB9ACq2AzudABeUAFEAbkR4AAoATgRUIUQAtgA8AAamoEmg2iS2AGagAF62YaAADEamicmpGaBEAMaVKQAeRqAlyaVkmdqe3rXZuQQNTc0Dtf0DpQDUoF3aVTXaALQToACMRiuNI0lFzUX9U9WgAMxFcQB8xaYgoIBf6oA05oAL8YDp3qa2tdYEIR5WdqAAcgCCIZFLDEnAAaH6gZ7mWwUEiuUAUACuUQARrljl5wZDobDwQB%2BFKIlG5CG1KEwuHfUD4pwAbQAuqAAFyOP4AohA0E-MH044NZkUWx%2BXIWGz2ByswHAsGUrHk%2BFI1EhMEAJRJZJxCIoAGsKAQAO4UHkY5U0gDkeGhVHMAAtTQzZTjKfjVczxf9JZzvtzOQA6P3KumnT72CXs74K3IxAAyauxcMJivR3lDQITuTBUdO5zAgAKlQCrNk8Xm8PqLQL8SCQYgBZWNytNKzGkuPyokhJOgGl%2Bn0p8Ot6vHMFdnsRkIxb7HOlmi3UG124oXQDzigXnq93qBg6AAMoI5HmSKVczV2s4%2BvS4-xkdJ-rDvtV9EOuGdv21Zk3xVjgegLshNzmZmUdJiQDKlQBNc1LVnBlmU1HV9QoecwEAbjlAEDI6BkEAUPjAEqlQAK40AH%2B1AA05QATNLzABuUBADIVQBMJWYbBAC45Lcdz3KoPEAFfjAD21QBvH0AaPV6PrUAAB9QBg3UDVAQBSo0ATFSRS%2BBxt13fdDxrB8W0VM9lPrK9mjfSM73PDsuxfH53TDEcP0HP0f3cf8KEAkJQIZZ0pwg20oNAWZFgQ0B8ILDcHCrBE8HMMhrDwIElKbOsRzUiKTyi0BLL04S4KNTxrz0-IQMspyZxcplHH8wLgtC6swVkxiFLHMFFk-J9u2M1M4rvcyfUswNC1XEsvgKoKQrCvTT0bdUL1bds-ICnriqraVuTa7NQGI6SxQAETIPwyDSAAhPr1LimUYuG1T4rcRLtREw1Ay8fpwqGgpMrcGkACJpyta0Htcsr5OYkqfnvfa3MWECktE10VrWzagQ%2BpiD2%2B8dpo7IGKGa1rThXYt11LUH1tsEgtqPHbW2im6NIxPaboy-EEbyhxMfBmGZuOEjPOVNxxtAQBAHUAUYjFt8AE3mZ1xxpiHx2wAb3RuxmVNHxeZCU0wVyMIQmZHxQAAX0Zjdt2qNxXH5wXlVF8XbElrXKh1uWjoFwLmVVdXPM3IhAO5h3AKlUCMlyaEzbBJaMiIVnlOZ2yvfsbwg89igzfbJw9PDn9I-sak8t99J-cCxm5puQB1bUAMm9nesKpbAAYWtIgQjhbxTVAKvBNNAAdChTQ10tfjwaxS5LsvXH6SuiBr6vkX701KiHkgh9sIf0iHqgh9tATq7IIeACsh61Ie8CHqJTX6WvG-n00CCH6wh4ARyH2X99cIfzCHhEh78Ie9SH2oh8sIesm35pa9%2BIeNqHouh5LSHj4IeAAxIeABxIeAAJIeABJIeAApIeABpIeUYh5Vk-skWu3wh4AHkh5BCHgARSHsqIem4h5OCHgAVSHgANSHgAdSHgADSHgATSHgALSbtzXsipO7lwxKafIQ9FhDwAExD32EPAALEPAArEPAAbEPAA7EPAAHEPAAnPwjcQQiBkBCMIiu1dtBDyMIY0sm5LAogIHgcxPdq6jCHrMIeAAqIewAh6eCHscIeMQh4ADIh78SHgAQn4XNQAx5GAATzUATgCBamhNzFJaSKDS0VnjP67gQiUCoO2HJfMWaBXiDSYx5dbCZOhKUkIdJmQABIRZVlVicDJqToR6wqVWIg5hKjWmxnpOpFAnCinpNKSEekClFPbKbHWvTDxiyiAMoZ2NmT9MGcMkgYIBSklfDM1WQZSxjImV8bwczqDz3rMUIxXdbCbgLmbGIcCKDWARB4ZS1yqBgm2Rskgsy9xFNEaaU4zRvDvM%2Bd8v6cRWnPMLuY1WrSALEm%2BJCDpIFqmuCeS82wY5IRgiruC-oWz1m7L0qaKu1JunZJliEouRAKDwgIB4NZOzQCuHxVfCFyRmRjOWTEKZoBoVfL5UkDOFxfIuHcBiHFeLC4hNAA3Coeo-ZPyzA8mpcC0gUCCukMgkYxWwpur8iVGITV6XhSLNFdlhEottTZdFmK4ggW0MMZIwi9Kt3bkQcxIEHAKt1dCA1RqQgbQICQIEGLSRgmERa5oAq6UNMZcy1l7KKWgCxvq1o4bSVbDJcklNDLTRMpZbqTNnKc1htyAW5IGdfLBr1bWiNUagRWp%2BSC6g-yKUjK7YU6gFqoUfK%2Bda1Fzr7WlxCI6u1PxXXus9Ukb1ylfUd2nXCQSgjcgBvxEGx5Ibc2GtyJG6NhK42gBtQC3ZjqHWdPWHlQV5TDw0mvdjOkYITUWs2Py4tWShWvr7SQD9orR3mAtVKsAMrfzyoPS2vNkZTREGRIsKRNRFj7AqK4EgU9TkyWESk7do4i7AsHcU1xJHlJiJpbdZklG-qmkkSBAGdGqUyJAlIot9GbqmjkSBTDrGqOKJAvIvK3HmymhUSBJRXGqXqJAqosTVKtEgQ0UpqjuiQLaNk1RgxIE9F5XyI20sslHa2HLJWGM%2BNDqqms2iDELsCUWejCqT8A18gM25qZwC3UyDRn6nFWzf1ibeEc9WcaRUgRRlc-suKHnjMyU3N2qghHTKblI0UlUAXWwYg8649LykbVzu%2BLOyd87SRYr3UlsjqW%2ByxvMKVRzznvO2F8zEZUVUPOlQIwQIjH5jgWptpBo2jhZUeG8LJZLtX3y8YMZ57mCq%2Budvycl3tOz%2B0rbI2C4doGYXjqdbZUADqJ2Hfq5VlIS6jvTr0kR3doBFumXq2CK9QHb3To6Ym392g31AqozRsZqay3psraADlQyVJ1s%2ByMZN-7n3CsmzV3rpkfsTk-WB3k-Qf1JHJet37DH-sltyUDitbLQdZvrPW7Hf6elw5pAjop02dJAdR7t8V-RhvQbld4B7fZGOocw0QdVuH7mlgVcY0xbywMZaHa45bN0itleOwdl1FW3X4g9Q%2Bldf1xdmI3SBJ9VsX3CJA-VqHj7CdvDTSTqt4OC6mMp6ALH5usmA-LRmsnnK7eywg55Tn437uPJ1yEmxWrRePPsY4vAku9sDsy6AH70uaCVwdyOmPcKTvEiV8Vhd6vLta5uhH5ETi7sKsL0489DXL2tJ%2B29suH3LvMm%2B0BqlBOXelrdyDsH1oIfe%2BdzTw3wqfsga-U7p3OPAUt-1xb0cxP3dd57w7mH-fBaAdx8P9H7PfcmbG7BmpZeo%2BmlCaE6uoevhjLIDkaPY7Y89upxQOEylzmTIZN4Hksupd-an7DgfYzXDEsXwHnvvilfuBqMnSkKnOh1tmmVqbl-tCBfgSk9vpH6L-s1AGINoAbioeq2iAb9DdAboLJAWCNnqSOiLSlkggRXtyF2KgV%2BP6G1EmpgbYEtujmAd-oQWVlASQaAeQfAZfkgbVLQV2OgUWmLiYqOF%2BmwcvhUkQdAadpCGQXfpQQITQXSn-nQT6CIYwaXg4kXlHpIY-uAXDrIdwYoefvwUSsgT6EIfQRgQDqWrQgctYFCECkMmXA7hztvjBt4OYQSnEGUJkEQKAFInokYCcKABcIAA6mWcgAAOaAAbWYkoAAxKwRBmgAgeaAAKaYAGFynkNwtAgAEBaADLfoACHmnMc0ms5gVQWoFyBKTg0c9IZRouBA1gMQSWlRekrRlQVRooMQzKlgA2c0kKW4FRnRektUc6skxBZWzgTRDkDE2srguscOIsJyAxv6DSQqpoHRWo2acIPgUQzhb8nm0qouCIrg1oLRwx2xykWx1RPRFAfRYItRqxSQr%2BXYWxjxdICWIYUatSpYPhdK1R883wPx1R9IzciWZmv%2BwIahCyZm0JWS6hT%2BdgIqPI4JYojmYy8J0IsJrsYyjxAJooYI8WIuXwwJaQNxfxPwIJz%2BYJAiPxWxQQpx5xWxN29Jlx1R%2BJ1grJaQoJH67YtU7xxa1gnxdJ5JlxQQTRQqLJykZJTy7JhJQp3JvxyJF03gYs7glRzIgp5gTRyaXJdsG4spDJTRFxbRMpbJlR1RO20pf0YxZWTgJieAkxh2KSwpIERp4pkpcOYWDpZATpVJYplpCpPIYIPpTR0o1JKp9MGB6xcOs%2BIOrwXJtg%2BxVgXKlx4KXxTBDSGIsZA%2BpoCqDSGZJJYoCqWJ9%2BUh4yz%2BoZlxSpFJlyHY9IDByQ-xCJoxc6eJGh3BsxGu6wYyVKVigapZLWUJpuEZgZnRjJZxppnR0ZDeAZcplREpzRWxeBzYHpi5XpA%2B7Zjpgp7ZTRihPZD6SQfZVGNii6R56w65E5JpvpeAK5tZnp1gEBUxt5u5L5%2B5l2D6e6Q5GJahFen4V5Wok55xzgO5lx1Bfo0x1gnJgYZuD6zIBZMsn5yQTu8FjgP5kJf5o585DJTJwIYFlREF1h4ZW4cJHZSJtgRJE4-RD6qFv6iFismORaWxmZCqQqQWN0spvJhslk40NsasC2jyMQRcPxieO2vhwlPxq5coBBMh9pahzpxIDgB5l2%2B6NSZZrg0lOIkB55F5oEbZUxwE%2BIbF3pcJDgUBXFVZHYsFyFVODFbwl2fIWZSFha2hjyDSmZoCmolQMQ-wVAD%2Bm2RSIqp6lgSpVpGIYsZc-lzIfl6hRe0azIIVAlG4XlkcgJ3gqVPlvyIqlldgeG9gDCgQCIypocPe88mV1RaJvgFAfg6VoAYsNIFA0QxsaZZGTSoAhVeAxVgJqs3MVYuQVAtgPgNVQsNVekw1tVCpvw1gdgMI41NV4V3g%2BCUQZAh4E1YIaSlgBAmQ01s1JA6Ix%2Bu12IVV-ggQ7Fz62Wh0E181k1eVEVlsfF7shuZE0IfgysY1BppYp1eAqa10zYvy22OZMsQqcQ31DSLSbSH2mZ31WxoCkQUQBKTKeAFo9gN%2BfyoAUYGQpqa5kZtgIqyoZAVA1o2NkUrYIq11ykE1VpriYslQgQKNdG9NtglFwgWNzImN6QlehSRNf4oEhNxN8sNV71fgyVX1AQd5lxcNzVdVMNkt8NBKvyY5JVIq9Y5NC1oo%2BVvg4tdZpVstlRUtCNvJZwG4etE5eFNpN0ptXRdgYIBtqNf0Vtdti1VhgpdtIpJt2tj5UpNZlNntQZNtipvtgQsN8tzt6plxWp4F64upip6sJ1ft15y5PtDtCd1ttg1pydN0dpLpjpildkrpsxVtS5UpZFudWtwd8pAdIZpFuJJFjtodGtMZ4tHlxZNdzBSIH4DmcJXoPeVFnl3lE1Y4zVAVZqyWIqnVxVI9zYqtIGFNDt6teVriNI3ww9YIE9bg9otpNIxWzVzU3BK9CNrgIG29ZW69e9MBkI69R9dI-Q%2BImVg9l2YW9WB9bgYI2Vx9gYIIj93dl9RVr9PeKJn9l2-VIQg1g9619VHYm10BbdQ9CNb9q21c4K7VjmvYMQ696IKxzQMZNVm%2BDRMkO%2BGVA9I1ZofcxKg8xKI8x9iwYIUiYI%2BwIGyx82FwgAV8o8CAANzqAOMPMB0NmukF5mDS8KOBbc2FbdTYMUXSafeUHRLRuU%2BcYfaQRTOXIcSHbSpQ%2BnbeNanXbTEHOkjSjXnRjVjYYwTTzYYxNWQZdjSPo8zSqPzZXhzeYJvVnaaK0BbCfS6b%2BMfXowQPfrYCfMVfqoY63FCCEE1VCHSN2bZckjBspOTI4MzOYAiGEy0XCSE7kOEyzblSzV1skko1qHBb%2BuZbYEkyk2FiJX4wE6GkrRyQUJ%2BK%2BZcWbnRVTtoI4wZYdj4OffIaSFE3pb4JdcSHuoI9YKOEXXhQ04ReXbI50TozYyzU-ZYdk4AzVMIfY2CD4LPTVQNoU1TirGjbpX00kBNTSBswM3ZEM83UI0LKncBfhX6YKfXc1cJUzfMz-Reksx-Ss-6Gs23Wg8cxsyzhYzRYc7s83aWuIjs47tE8rO0yruYHM103C4470yC%2BVvCy84ngc6i0kPVm0%2BaTyc-li9i80A4MM6ONE9i2M1ORS8S0czc%2BM-k%2Bs9o-Lc88jbY7A0gR8-THY2Y9VX4ANl-bSyC48wjRXgi2i44zNOs1szSyC5C30-K%2BsE5WDaWpIoqxsHlCq0TjIpC80wMMrGC0TnIk09Cxdti9Yy8zy8Tc482GaO4tyHOtFio3ZAGLMcU6UxQKk4BGg85qgx3ZmKGWZmgwbAK3k-c407K3lBa2yyzaY9a6MaaJ4g62Vk65AZE4Gok8k56367EHJFDIeDm9GJ%2BIWyG-U-k%2Bq1G%2BK3G04wm1EgEsm4dqm5wem3upmyk1Zn9KqPiBlMyDQ2G9MwU5G8yNGwY3zTzTa3KGaB0O446yYy2wkyU1m-5oHMxoZo8eW0Ox2FW-YxOziGaOtDO6ffO%2B60u2FgwjUwqbkxM50RW43pG80Mc3M7u3CJlbozAavc66ACFRW80Bc4ED4Fc1S%2Bcde1qEyxXfrSy642PNyCFR-bbcQ34HA--dW9K-y9s-e2sYa5bqaIohW9sH0ysHOVq9hyot%2BkWsRzPuovNr5G256wByM2FQqSI3KGIxra4pI0nZUVpbsTc5uRwTneG5MyKwSno5a5%2B5K5%2Byh5%2B0C7fWa%2BsPR3ZHZuc44GS9c%2BB2bVOSB2BwO7M2JxJ7VFJwp5s2h2bq6Kp0B3cwO9pyHU8%2BKyc0I81Mi1a5XkC9%2BnlIeQMAp2cyBN9UKgp2CEw0R1hzPlomR15inK0YeC-Ynus0I4x3da-qaGkFPNKLvb4EI%2B7SZinK%2B9F2jWCLFYnsFe2vF%2BnRiGaMlxbC-fl6A%2BobB5maS%2BLaEOEPDaaeYFPXKFy3yzdbUxxdPZePlhUW17C3ZJF4i3ZPVpF0fUS8kBN4N%2B146LjfSNNyMJF3pNTBkK%2BzvfA5%2B7FYY9%2B8t0eQ14EE1xENEBXpN-8gNUNSNRAw1U1QjTAy-e1a%2B7t1%2B%2B2pg5%2BHlgR6a6t8pOt%2BkJF2%2B6dml3Ogp%2Bo6i0dz9Vcyc8y081B%2B40Z1K3y9RVo2dQo4dlwVMeD7S5Dydy17NwMuoSA2AzdzVQFx2Pd-YJQD8M1e1bbJ%2BAbJG3q2hRRyErorqz94NyVwdw%2BpDwp8KsJyEge9yJF3B8jxdDI8%2BRj4Y8pWsEK3%2B8EGEKd7EAT216h65nL7Swa-%2B6WqF9E8z5hzr0TnNo5UF0b9h4sBC0xYwb53DlARY3gx7cd0ry1wVoFTLoMaWZuNx0wVL%2Bij8ZpYGt9Xj2d7KeocsVRaIe5UhUAA" target="_blank"><span class="LinkCard-contents"><span class="LinkCard-title loading" data-text="true"></span><span class="LinkCard-desc loading"></span></span><span class="LinkCard-image LinkCard-image--default"></span></a><p class="ztext-empty-paragraph"><br/></p><h2>基本结构</h2><p data-pid="ML7OwrXj">我们造一个简易的 Lisp 解释器主要分成两个步骤：</p><ol><li data-pid="9mVxre5U">解析器 —— 将字符串解析成抽象语法树（AST）</li><ol><li data-pid="9DW6gMvt">词法分析 —— 将字符串解析成一个 Token 数组（可以理解成分解成独立的单词）</li><li data-pid="XrOf8q6m">语法分析 —— 将上面的 Token 数组经过解析生成抽象语法树（AST）</li></ol><li data-pid="TEjBzSUx">求值器 —— 对抽象语法树进行求值得到最后的结果</li><ol><li data-pid="LwIHyGca">指令</li><ol><li data-pid="XqkJddSR">声明变量</li><li data-pid="nyCauX6-">声明函数</li></ol><li data-pid="9Nz5SZ4s">求值</li><ol><li data-pid="IjcCm_84">基本运算表达式求值，如： <code>+</code> 、<code>-</code> 、<code>==</code> 、<code>!=</code></li><li data-pid="QU6ZhM-_">条件表达式求值：<code>if</code></li><li data-pid="_WTHROz2">函数调用表达式求值，如：<code>(acc 3)</code></li></ol></ol></ol><p data-pid="bVSZDs5A">我们 Lisp 解释的代码也就是分成这几个大块，大家看代码的时候可以对应着看。</p><h2>基础知识补充</h2><p data-pid="9wmQqjMs">再开始实现我们的 Lisp 解释器事前，我们需要先补充一些基础的函数式语言的知识和技巧。虽说前端天天提函数式，但实际有纯函数式语言的前端其实凤毛麟角，所以补充下基本的技巧非常有必要。</p><h3>TypeScript 的类型是一门独立的「纯函数式编程语言」</h3><ul><li data-pid="qcqWLTTu">Q：为什么我们能拿 TypeScript 的 Type 做那么多骚操作？比如本文的例子，写一个 Lisp 解释器？</li><li data-pid="0Srb4ni7">A：因为 TypeScript 的类型是一门独立的「纯函数式编程语言」。所以我们需要用看待一门编程语言的视角来看看待 TypeScript 的类型，才能理解为什么类型能做那么多骚操作。</li></ul><p data-pid="EQaBero3">这里举一个非常简单的例子来让大家重新认识 TypeScript 的类型，下面的 JavaScript 代码和 TypeScript 类型运算的代码实际上干的是同样的事情，并且能得到同样的结果：</p><div class="highlight"><pre><code class="language-text">// javascript 实现
+const foo = (a, b) =&gt; a + b;
+const result = bar(1, 2) // =&gt; 3
+
+// typescript 类型实现
+type Foo&lt;A extends number,B extends number&gt;
+    = Add&lt;A, B&gt;
+type Result = Foo&lt;1, 2&gt; // =&gt; 3
+</code></pre></div><p data-pid="Oc3aWHxC">在线试试上面的例子：</p><p class="ztext-empty-paragraph"><br/></p><a class="LinkCard new" data-draft-node="block" data-draft-type="link-card" data-text="TS Playground - An online editor for exploring TypeScript and JavaScript" href="https://link.zhihu.com/?target=https%3A//www.typescriptlang.org/play%3Fts%3D4.5.0-beta%23code/MYewdgzgLgBAZiEMC8MAUBDAXDMBXAWwCMBTAJwBoYid9jyBKFAPhgxgGpqBuAWAChQkWGRIQ8AG1ioEINAEYqAJiYB6VSxgBmAQKgBPAA4kYAMUQAeAIIwSADygkwAEwi5CpSgCFbDp6-d6MmYBGDCUGCtnZ2sqLxD%2BA2MYACUxSWkzS0UYJVZ1TR1%2BXWLSgsAv9UAac0AF%2BMB07wF7QxAyWCSTADkrMjIMfQsAFSp230cXNzpPVlRh%2B1GA4YB%2BdAnyEf83RZh%2BgG0AXRgcAH1O7t6Boao95iZaEgA3cj0jE2Ounr7BmBm-McDPKhSa1%2BeDAAGswCAAO5gK4RFLbADkEicAHMoAALBH7WbrL4wJaAo4nd7nL6XT4AOipKV2CTaXzevXaHnIFgAMkCAitghFiWduVQ2QkBAVAAVKgFWbBp2JotGD0qIxACynPGLMoeJxv25Uxg2ypFL5%2BmZQQsiuYVH1huNngs7WYu0RyLAaMxuxKBUA84qS-iNZqtZ4wADKeCIUB6wCgppVf3IQ2j2pQoXCVrVptYmoCeqpdhwKZNdotVNE0BwAEswHBVjT8alHaiMViDjAQeCoWB3RpANxygEDIwAUroA4uUAofGASqVABXGgB-tQAacoATNPF3BggDIVQCYSoAseUAB2qALjkgyGwxgIzBACvxgD21QDePoBo9S33JgAB9m2CIdCYIBSo0AmKlPZKHYOh8OR5UZ1VBHG-4xjyyBJmEeY2ma0ZZhSOYMqcRqpgWMD6sWUBlhWVb7ASdbOg2%2Bw4AAtPIHYwJO3r0ocioZKWhgSH0f4-FyapAcxAH-DAxbRi2D4wrSib8OEGrsTAAAMNbFnhLqNkcNFSHRDGmlQn47j%2BtpUPI5q6pajJ9AKMBmoWFLFrSUoyv6yTyVAimMfGrEiXMHHkDq1G0fRjEXLqZllBos7vi8AAipZ3KWzgkF4dnAQZ3xOSBVDccBvFtrCYFCeETFxRJSxSQARE6Lq5YRMCqd%2Be6-kM6aiSRNbJY%2BRzBaF4WRRYpW7hGylfNp7SXHVYDGaZCS%2BrK9KNWFJDOC1mW4jF9lBDqsW4tld6tvVJVjc1nlkt5zDcEAA" target="_blank"><span class="LinkCard-contents"><span class="LinkCard-title loading" data-text="true"></span><span class="LinkCard-desc loading"></span></span><span class="LinkCard-image LinkCard-image--default"></span></a><p class="ztext-empty-paragraph"><br/></p><h3>类型与值</h3><p data-pid="XCTHmKaW">类型我们可以简单看成一个值的集合，它里面只包含一个值，比如字面量类型 <code>1</code>、<code>hello</code> 也有可能有无限个值比如 <code>strng</code> 、<code>number</code> 等等。而我们在做类型运算的时候，比如 <code>Add&lt;1, 2&gt;</code> 我们希望得到的结果是 <code>3</code> 而不是 <code>number</code> ，所以我们在做类型运算的时候对 类型里面再分出来「类型」和「值」出来：</p><p data-pid="rr4gztBB">比如下面是常见的例子的对比：</p><table data-draft-node="block" data-draft-type="table" data-row-style="normal" data-size="normal"><tbody><tr><th>值 （仅包含一个元素的类型）</th><th>类型 （包含不止一个元素的类型）</th></tr><tr><td>type A = 1</td><td>type AType = number、1 | 2</td></tr><tr><td>type A = 'hello'</td><td>type AType = string、'foo' | 'bar'</td></tr><tr><td>type A = [1, 2, 'hello']</td><td>type AType = number[]、[number, string]</td></tr><tr><td>type A = { hello: 'world' }</td><td>type AType = { hello: string }</td></tr></tbody></table><p data-pid="cguP_CXH">再加上两个常用的类型：</p><ul><li data-pid="eAfXl5SR">any —— 全集</li><li data-pid="emjOToFi">never —— 空集</li></ul><h3>extends 与分支条件</h3><p data-pid="b5n5PLkQ">最后再说一个 <code>extends</code> 运算的操作，<code>A extends B ? C : D</code> 的意义是判断 <code>A</code> 集合是否为 <code>B</code> 集合的子集，如果是那么返回 <code>C</code> 否则返回 <code>D</code>。</p><p data-pid="jTYhEqAJ"><code>extends</code> 在做运算的时候主要是两个用途：</p><ul><li data-pid="W5aDe8Mu"><code>&lt;值&gt; extends &lt;值&gt; ? :</code> 判断两个值是否相等，可以类比 javascript 的 <code>&lt;值&gt; === &lt;值&gt; ? :</code></li><li data-pid="Imk1xpDo"><code>&lt;值&gt; extends &lt;类型&gt; ? :</code> 判断一个值是否属于某个类型，可以类比成 <code>typeof &lt;值&gt; === &lt;类型&gt; ? :</code></li></ul><p data-pid="i-xPEFIP">举个例子：</p><div class="highlight"><pre><code class="language-text">type Func&lt;T&gt; =
+    T /*值*/ extends string /*类型*/? (
+        T /*值*/ extends 'foo' /*值*/ ? 'is string foo'
+        : T /*值*/ extends 'bar' /*值*/ ? 'is string bar'
+        : 'unexpected string value'
+    )
+    : T /*值*/ extends number /*类型*/? (
+        T /*值*/ extends 0 /*值*/? 'is number 0'
+        : T /*值*/ extends 1 /*值*/? 'is number 1'
+        : 'unexpected number value'
+    )
+    : 'unexpected value type';</code></pre></div><p data-pid="HYyUkqvO">在线体验：</p><p class="ztext-empty-paragraph"><br/></p><a class="LinkCard new" data-draft-node="block" data-draft-type="link-card" data-text="TS Playground - An online editor for exploring TypeScript and JavaScript" href="https://link.zhihu.com/?target=https%3A//www.typescriptlang.org/play%23code/C4TwDgpgBAYgrgOwMYB4AqA%2BKBeAsAKCiKjSggA9gIEATAZyjuACcBLBAcygH4oAKAsSEkylavSgByAGYB7WZJ5TWDJm05Q5CwcKIAuERSq0GkgEYBDZot6SVjFuy6XrO3QcmIKkJFRoP1LgA3CwAbOAhJNygASmiDUiNxBgQ4AFszCGYlAUJdQzETKAAGJTsU9Mzs4qi89wLjCQBGMvtUjKyoJtr8qA8vch8-KHaqqBDwyOi4ur6pAaGIfwmIqFBISQBuIA" target="_blank"><span class="LinkCard-contents"><span class="LinkCard-title loading" data-text="true"></span><span class="LinkCard-desc loading"></span></span><span class="LinkCard-image LinkCard-image--default"></span></a><p class="ztext-empty-paragraph"><br/></p><h3>变量声明</h3><ol><li data-pid="Ss3xv49A">通过 <code>type T = ...</code> 声明全局变量（ts 文件作用域）</li><li data-pid="Ag4657YZ">通过 <code>A extends infer B</code> 声明局部变量，可以类比纯函数式语言里面的 <code>let B = A in xxx</code>。</li></ol><p data-pid="DPxKfbBA">举个例子：</p><div class="highlight"><pre><code class="language-text">type A = 'hello'; // 声明全局变量
+type B = [A] extends infer T ? (
+    T // =&gt; 在这个表达式的作用域内，T 都为 [A]
+) : never  // 声明局部变量
+</code></pre></div><h3>函数声明与调用</h3><p data-pid="vgXjgglz">把 TypeScript 的泛型当做函数声明和调用，可以类比 JavaScript 的函数声明：</p><div class="highlight"><pre><code class="language-text">type Func&lt;A extends number, B extends string = 'hello'&gt; = [A, B]
+//     ↑ ↑           ↑    ↑           ↑        ↑        ↑
+// 函数名 参数名    参数类型  参数名       参数类型  默认值      函数体
+
+type Test = Func&lt;10, 'world'&gt; // =&gt; [10, 'world']
+
+function Func(A: number, B: string = 'hello') { return [A, B] }
+const Test = Func(10, 'world') // =&gt; [10, 'world']
+</code></pre></div><h3>没有高阶函数不影响表达能力</h3><p data-pid="rV9M-seM">把 TypeScript 类型当成一门纯函数式编程语言其实不算准确，比如 TypeScript 类型就缺少一个标志性的能力「First-Class-Function」，在表现上就是没有高阶函数，但是这并不影响他的表达能力。具体的不展开讲了，可以看一下面这个回答，如果我们把一个环境（闭包）当成参数传递给函数，那意味着并不需要高阶函数一样能实现闭包的效果。</p><p data-pid="LEuHltbs"><span class="ztext-math" data-eeimg="1" data-tex="Function(Arguments, Process, {\color{red}{Environment}}) \rightarrow Return + {\color{red}{Environment'}}">Function(Arguments, Process, {\color{red}{Environment}}) \rightarrow Return + {\color{red}{Environment'}}</span></p><p class="ztext-empty-paragraph"><br/></p><a class="LinkCard new" data-draft-node="block" data-draft-type="link-card" data-text="现代浏览器生成一个 JS 函数的开销多大？React hooks 的设计频繁生成新函数对性能有影响吗?" href="https://www.zhihu.com/question/345689944/answer/943385371" target="_blank"><span class="LinkCard-contents"><span class="LinkCard-title loading" data-text="true"></span><span class="LinkCard-desc loading"></span></span><span class="LinkCard-image LinkCard-image--default"></span></a><p class="ztext-empty-paragraph"><br/></p><h3>模式匹配</h3><p data-pid="SCVGoe4h">我们都知道 <code>extends</code> 后面可以接一个 <code>infer</code> 用来提取变量，一般我们会把跟 JavaScript 的解构拿来做类比，事实上这个能力叫做模式匹配，他会先做我们上面说的集合的运算，之后结果能匹配才会将里面的结构拆解出来。我们在这里介绍几个常见的技巧：</p><p data-pid="2qRAGL8p">用于拆出来数组和字符串第一个元素的匹配，常用语递归一个数组里面的每一个元素：</p><div class="highlight"><pre><code class="language-text">// 递归处理数组常用的匹配
+type Test0 = [0, 1, 2] extends [infer Head, ...infer Tail] 
+    ? { head: Head, tail: Tail } 
+    : never;
+    
+// 递归处理字符串常用的匹配
+type Test1 = `abcdefg` extends `${infer Head}${infer Tail}` 
+    ? { head: Head, tail: Tail } 
+    : never;</code></pre></div><p data-pid="KFBtchGk">通过构造一个新结构一次性匹配多个变量：</p><div class="highlight"><pre><code class="language-text">type Func&lt;A, B&gt; = [A, B] extends [1, 2] 
+    ? 'match 1 2'
+    : 'not match';</code></pre></div><p data-pid="bCozH4Sp">通过构造一个带类型的新结构来避免 <code>infer</code> 变量的类型丢失：</p><div class="highlight"><pre><code class="language-text">type OnlyNumber&lt;N extends number&gt; = N;
+type Tmp&lt;A extends number&gt; = { a: A };
+type Test0 = { a: 10 } extends Tmp&lt;infer A&gt; // infer A 只能是 number 类型
+    ? OnlyNumber&lt;A&gt; // 不报错
+    : never;</code></pre></div><h2>递归与尾递归</h2><p data-pid="Vj4d2id3">我在上面的小节里面讲了一些基本的语法和技巧，但是问题来了。循环去哪儿了？这里要提出一个「反常识」的概念了：</p><p data-pid="0iHpp5E6">递归和循环等价！所以在纯函数式编程语言里面往往用递归代替循环。</p><p data-pid="8fPa8It8">并且可以得到以下推论：</p><ul><li data-pid="rAexdI0N">任何循环都可以用递归实现</li><li data-pid="R2cj6KCg">任何递归都可以用循环实现</li></ul><h3>普通递归</h3><p data-pid="Zy9_ozWV">不做赘述，用下面两个例子为例为例演示用 TypeScript 类型实现递归运算：</p><div class="highlight"><pre><code class="language-text">// 遍历数组
+type ArrayStuct&lt;Head extends string, Tail extends string[]&gt; = [Head, ...Tail];
+
+type Join&lt;Arr extends string[], Sp extends string&gt;
+  = Arr extends [] ? ''
+  : Arr extends ArrayStuct&lt;infer Head, []&gt; ? Head
+  : Arr extends ArrayStuct&lt;infer Head, infer Tail&gt; ? `${Head}${Sp}${Join&lt;Tail, Sp&gt;}`
+  : never; 
+
+type Test = Join&lt;['foo', 'bar', 'hello'], ','&gt; 
+// =&gt; type Test = "foo,bar,hello" 
+</code></pre></div><p class="ztext-empty-paragraph"><br/></p><div class="highlight"><pre><code class="language-text">// 遍历树
+type NodeType = string | NodeType[];
+type NodeArrayStruct&lt;Head extends NodeType, Tail extends NodeType[]&gt; = [Head, ...Tail]
+
+type NodeArrayToString&lt;NodeArray extends NodeType[]&gt;
+  = NodeArray extends NodeArrayStruct&lt;infer Head, []&gt; ? NodeToString&lt;Head&gt;
+  : NodeArray extends NodeArrayStruct&lt;infer Head, infer Tail&gt; ? `${NodeToString&lt;Head&gt;}, ${NodeArrayToString&lt;Tail&gt;}`
+  : '';
+
+type NodeToString&lt;Node extends NodeType&gt;
+  = Node extends string ? Node
+  : Node extends NodeType[] ? `(${NodeArrayToString&lt;Node&gt;})`
+  : ''; 
+
+type Test = NodeToString&lt;['123', ['456', '789'], ['1112']]&gt;
+// =&gt; type Test = "(123, (456, 789), (1112))"
+</code></pre></div><p class="ztext-empty-paragraph"><br/></p><h3>尾递归 &amp; 尾递归转循环 &amp; 通用递归转循环</h3><p data-pid="ZRX6i9sJ">在纯函数式编程语言里面，由于没有只能用递归代替循环，但是就会遇到一个非常尴尬的问题「爆栈」，所以函数式编程用尾递归（尾调用）的方式解决了这个问题。</p><p data-pid="9_MPpSBo">在 TypeScript 类型运算里面函数栈只有 50 层，几乎做不了任何复杂的运算，但是 TypeScript 在 4.5-beta 版里已经支持了类型运算的尾递归优化，用尾递归的方式来写递归极限可以达到 1000 层，远超原来的 50 层。</p><p class="ztext-empty-paragraph"><br/></p><a class="LinkCard new" data-draft-node="block" data-draft-type="link-card" data-image="https://pic4.zhimg.com/v2-3339f6c27e55de8125e406fc55a4f793_180x120.jpg" data-image-height="350" data-image-width="562" data-text="Announcing TypeScript 4.5 Beta" href="https://link.zhihu.com/?target=https%3A//devblogs.microsoft.com/typescript/announcing-typescript-4-5-beta/%23tailrec-conditional" target="_blank"><span class="LinkCard-contents"><span class="LinkCard-title loading" data-text="true"></span><span class="LinkCard-desc loading"></span></span><span class="LinkCard-image LinkCard-image--default"></span></a><p class="ztext-empty-paragraph"><br/></p><p data-pid="SAph_G5H">这一小节展开来讲非常耗时，大家可以通过我的另外两篇文章来补充关于递归的知识：</p><p class="ztext-empty-paragraph"><br/></p><a class="LinkCard new" data-draft-node="block" data-draft-type="link-card" data-text="尾递归为啥能优化？861 赞同 · 111 评论文章" href="https://zhuanlan.zhihu.com/p/36587160" target="_blank"><span class="LinkCard-contents"><span class="LinkCard-title loading" data-text="true"></span><span class="LinkCard-desc loading"></span></span><span class="LinkCard-image LinkCard-image--default"></span></a><p class="ztext-empty-paragraph"><br/></p><p class="ztext-empty-paragraph"><br/></p><a class="LinkCard new" data-draft-node="block" data-draft-type="link-card" data-text="通用的递归转循环方法143 赞同 · 17 评论文章" href="https://zhuanlan.zhihu.com/p/136511316" target="_blank"><span class="LinkCard-contents"><span class="LinkCard-title loading" data-text="true"></span><span class="LinkCard-desc loading"></span></span><span class="LinkCard-image LinkCard-image--default"></span></a><p class="ztext-empty-paragraph"><br/></p><h3>循环转尾递归</h3><p data-pid="A5QSwwO4">在尾递归章节的文章里面已经讨论过了，递归和循环实际上是等价的，并且已经讨论过如何将递归/尾递归转换成循环。既然等价，那也一定有办法将循环转换成尾递归。</p><p data-pid="r0yarqvS">说白了循环是什么？无非就是一个一段代码不断执行罢了，同上面的高阶函数小结我们给循环一个定义：</p><p data-pid="U-bbpmZJ"><span class="ztext-math" data-eeimg="1" data-tex="\begin{aligned} Process(Environment) \rightarrow &amp; Environment' \\  Test(Environment) \rightarrow &amp; True | False\\ Loop(Test,Process, Environment)  \rightarrow &amp; if (Test(Environment)) \\  &amp; then \ Loop(Test, Process, Process(Environment)) \\ &amp; else \ Environment \end{aligned} ">\begin{aligned} Process(Environment) \rightarrow &amp; Environment' \\  Test(Environment) \rightarrow &amp; True | False\\ Loop(Test,Process, Environment)  \rightarrow &amp; if (Test(Environment)) \\  &amp; then \ Loop(Test, Process, Process(Environment)) \\ &amp; else \ Environment \end{aligned} </span></p><p data-pid="qQ4c2NVP">我们把上面定义用代码实现一下就可以得到一个通用的将循环函数转成尾递归的方法，比如我们要将下面循环转成尾递归：</p><div class="highlight"><pre><code class="language-text">function join(arr) {
+  const l = arr.length;
+  let i = 0
+  let result = ''
+  while (i &lt; l) {
+    result += arr[i]
+    if (i != l - 1) {
+      result += ','
+    }
+    i++
+  }
+  return result
+}</code></pre></div><p data-pid="b0sv7Vqa">照着上面的公式写就行将上面的循环转换成下面的尾递归形式：</p><div class="highlight"><pre><code class="language-text">// Loop
+const loop = (test, process, env) =&gt; test(env) 
+	? loop(test, process, process(env))
+	: env
+
+function join(arr) {
+  const env = {
+    arr,
+    l: arr.length,
+    i: 0,
+    result: '',
+  }
+  const newEnv = loop(
+    env =&gt; env.i &lt; env.l, // Test
+    env =&gt; { // Process
+      const newEnv = {...env}
+      newEnv.result += newEnv.arr[newEnv.i]
+      if (newEnv.i != newEnv.l - 1) {
+    	newEnv.result += ','
+      }
+      newEnv.i++
+      return newEnv
+    },
+    env // Env
+  )
+  return newEnv.result
+}</code></pre></div><p data-pid="x9azR7Tz">用上面的方法，可以把任何的循环转换成尾递归形式，但是因为 TypeScript 类型不支持高阶函数，所以只能耦合 Loop / Process 和 Test，并且简化 Environment ，比如如下用类型实现的尾递归版本 <code>Join</code>例子，就没有明确的 Loop / Process / Test 和 Environment 的定义，但其实都耦合在函数里面：</p><div class="highlight"><pre><code class="language-text">/ 遍历数组
+type ArrayStuct&lt;Word extends string, Tail extends string[]&gt; = [Word, ...Tail];
+
+type Join&lt;Arr extends string[], Sp extends string, Result extends string = ''&gt;
+  = Arr extends [] ? Result
+  : Arr extends ArrayStuct&lt;infer Word, []&gt; ? `${Result}${Word}`
+  : Arr extends ArrayStuct&lt;infer Word, infer Tail&gt; ? Join&lt;Tail, Sp, `${Result}${Word}${Sp}`&gt;
+  : never; 
+
+type Test = Join&lt;['foo', 'bar', 'hello'], ','&gt; 
+// =&gt; type Test = "foo,bar,hello" 
+</code></pre></div><h3>尾递归遍历树</h3><p data-pid="YQVbc27k">如何用尾递归遍历树这种数据结构？组合一下上两节的知识就行了：</p><ol><li data-pid="_AONQgfp">递归遍历树 --(通用递归转循环)--&gt; 循环遍历树</li><li data-pid="VfZGJrT7">循环遍历树 --(循环转尾递归)--&gt; 尾递归遍历树</li></ol><p data-pid="ZA8ertd7">这里再强调一下重点，在用循环遍历一个树的时候，需要记录两个维度的信息才能明确我现在遍历的位置，以及下一步需要遍历的位置：</p><ol><li data-pid="oddTh327">纵向（下图绿色所示）：表示我遍历的深度，一般用栈表示。</li><li data-pid="8Jp9vsLr">横向（下图红色所示）：表示我遍历到第几个子节点，这个有很多方法只要能标记哪些子节点已经遍历过了，那些未遍历即可。</li></ol><img loading="lazy" onerror="this.src='https://collection.sduoooh.me/【小号存档】TypeScript_类型体操天花板，用类型运算写一个_Lisp_解释器626636607/img/1.jpg';this.onerror=null;" src="./img/1.jpg" aspect-ratio ="2.2147058823529413"><p data-pid="s4MQRxcB">这里给一个简单的运算加减表达式树的例子，虽然这个例子有更简单的解法（详见前缀式表达式运算），这里给了一个在栈上保留了更多上下文的更为通用的实现方式：</p><div class="highlight"><pre><code class="language-text">type OperatorType = '+' | '-';
+type NodeType = number | OpNodeType;
+type OpNodeType = [OperatorType, NodeType, NodeType];
+type UnitOpNode&lt;Op extends OperatorType, Left extends number, Right extends number&gt; 
+    = OpNode&lt;Op, Left, Right&gt;;
+type OpNode&lt;Op extends OperatorType, Left extends NodeType, Right extends NodeType&gt; 
+    = [Op, Left, Right];
+
+type FrameType = NodeType;
+type StackType = FrameType[];
+type PushStack&lt;Frame extends NodeType, Stack extends StackType&gt; = [Frame, ...Stack];
+
+type Eval&lt;Stack extends StackType&gt;
+    = Stack extends PushStack&lt;infer Top, infer TailStack&gt; ? (
+        [Top, TailStack] extends [number, []] ? Top // 返回结果
+        : Top extends UnitOpNode&lt;'+', infer L, infer R&gt; ? Eval&lt;PushStack&lt;Add&lt;L, R&gt;, TailStack&gt;&gt;
+        : Top extends UnitOpNode&lt;'-', infer L, infer R&gt; ? Eval&lt;PushStack&lt;Sub&lt;L, R&gt;, TailStack&gt;&gt;
+        : Top extends number ? Eval&lt;Return&lt;Top, TailStack&gt;&gt;
+        : Top extends OpNode&lt;OperatorType, OpNodeType, NodeType&gt; ? Eval&lt;PushStack&lt;Top[1], Stack&gt;&gt;
+        : Top extends OpNode&lt;OperatorType, number, OpNodeType&gt; ? Eval&lt;PushStack&lt;Top[2], Stack&gt;&gt;
+        : never
+    )
+    : never;
+
+type Return&lt;Value extends number, Stack extends StackType&gt; 
+    = Stack extends PushStack&lt;infer Top, infer Tail&gt; ? (
+        Top extends OpNode&lt;OperatorType, OpNodeType, NodeType&gt; ? PushStack&lt;OpNode&lt;Top[0], Value, Top[2]&gt;, Tail&gt;
+        : Top extends OpNode&lt;OperatorType, number, OpNodeType&gt; ? PushStack&lt;OpNode&lt;Top[0], Top[1], Value&gt;, Tail&gt;
+        : never
+    )
+    : never;
+
+type Test = Eval&lt;[['+', ['+', 1, 2] , ['-', 4, 3]]]&gt;
+// =&gt; Test = 4
+</code></pre></div><p data-pid="h5TWjU8k">在线体验：</p><p class="ztext-empty-paragraph"><br/></p><a class="LinkCard new" data-draft-node="block" data-draft-type="link-card" data-text="TS Playground - An online editor for exploring TypeScript and JavaScript" href="https://link.zhihu.com/?target=https%3A//www.typescriptlang.org/play%3Fts%3D4.5.0-beta%23code/C4TwDgpgBA8pBOBDYB7eAVc0C8UDkA1HlAD74C0eA3ALABQokUAcigCYSZO4B2ArgFsARhHilYYVhy4RaDLBKmcFuANpxRyNDIA0Ldssh6lMgLpzG0AKo8AlsDhKAPHCgQAHsAg82AZwmaqBhYegAyEABmwG6e3n5Q-MKiegBKtgDmABbRHl4%2B-oki8AB8UPRQFVC4jgYuYGGRwKkZ2cUWCjUcdTF58RpIQbpQ4VE9cf4mIVBpWTmx%2BfrSWKXllWpwDVHNs%2Bb0e3TtTABiSAKGOIvnh9AAysCIAMYA1jJVUCeIZzKqu-JMAAp8XyZO6PJ5OD5nMYLSZGKCg57Q%2BIIl7LN6qSEQPQAOlxKN%2B9EsUAAogA3RAAGycKKR-hRMmKqwquBpuXGUEBwJRTlsPAioig6BQ9SgvP5YnQiFsFJRpQA-FAABRMyoVVRCkWS6X42lQVSFZJ60ymKAKjVQAD0FqggBX4wB7aoBlv0AOeYq1UALkFwt1NnsnQgTkIeD0YoFoWDfIFKXlJPJVM5IPuzycAEE2GwnGHpsU9FqZYmnsVGXRVe7PWBvXYHJJanhKOHxcN65Ho2TKU549ybnwhBnUtnBVK82DC67Kh7zWyFgaxArW1SUhBgHx4DwnBqc4PZUWS2Oy7q-XVAtopn6hrCIC3Y%2B2gQmwWvhaoAIymPRb0cVcdeyd9atdfpaYI4WnPRTzRWcrw7fN7zAVQACYX3hfMR2LHcoA9HgIFJUQVQAShVdDMNEORCQUBclxXJwADVKT4aBvwKQQilffNdXpNEVRZFj6I5G9uRDCVhSbCVB2jZUUJ3Cd5h-Zx-0GE9f3OYwDAZU0eK5KCDw1VQAAYEOoilaJzB94P7XNt1Qz9y24g9ZOPIDGMNUDIGjSC700h9dKMmDnz0fTaNMkT3zQhJCPgXD8JCrD4GIv5oHQCBfGiXA5ycVRVEDPR0qIPRHz0eCoEy2sgygAAWPQAGZjVMIt9itKBAC-1QAac0ABfjAHTvEimGYZN4CQEA12MXVp1KXBmF1UaFUVacxtU9AfmCgB9LqesQPr0GMTLqpw4KMKi64oEW7rev6lhBoc%2BBUl1PgeCeHgUAAdx4H5humdKKW8dJgEyPATW48bpgWpajrWlhMuB3FsRSaq9sBlbmDOjNTqSEo3hhvrgOGNoOugebU3TABZRGmJO7ihvRcHUbhpGnDx-tycO2H4eYYpTFe97Pu%2BrH9q7IRgCQB5gGpwnDVGkmzuGlUKfhmndVUcH3A9SWqaZnFcXgBLgA9fjphNBUUlZngPq%2Bk0PSum77p4fYiXmm5EH5SmijXZ70CFmdBWC8hHz23GEdFpGLt9opnut22IHt0QnBxtNeyzIsiW5n2pIYv3-oD0Qg5tu34et7teceAXMyjYogA" target="_blank"><span class="LinkCard-contents"><span class="LinkCard-title loading" data-text="true"></span><span class="LinkCard-desc loading"></span></span><span class="LinkCard-image LinkCard-image--default"></span></a><p class="ztext-empty-paragraph"><br/></p><h2>实现 Lisp 解释器</h2><p data-pid="5DFHl1Kc">基础知识补充完了以后我们开始实现解释器，开始着手实现解释。</p><h3>基本加减乘除运算</h3><p data-pid="bJpc0anT">TypeScript 类型并不能直接对数值进行运算，连最简单的 <code>1 + 1</code> 都无法运算，这个问题曾困扰广大体操运动员很久，直到有一天我们发现了数组可以通过 <code>['length']</code> 取出数值，既然我们不能直接操作数值，但是我们通过操作数组来代替操作数值并且求值，我们提出想法后我们的某个聪明过人的同事就把他实现了出来，加减乘除如下所示：</p><div class="highlight"><pre><code class="language-text">// 基本运算
+export type NArray&lt;T, N extends number&gt; = N extends N ? (number extends N ? T[] : _NArray&lt;T, N, []&gt;) : never
+type _NArray&lt;T, N extends number, R extends unknown[]&gt; = R['length'] extends N ? R : _NArray&lt;T, N, [T, ...R]&gt;
+type NArrayNumber&lt;L extends number&gt; = NArray&lt;number, L&gt;
+
+// 加法
+export type Add&lt;M extends number, N extends number&gt; = [...NArrayNumber&lt;M&gt;, ...NArrayNumber&lt;N&gt;]['length']
+
+// 减法
+export type Subtract&lt;M extends number, N extends number&gt; =
+    NArrayNumber&lt;M&gt; extends [...x: NArrayNumber&lt;N&gt;, ...rest: infer R] ? R['length'] : unknown
+
+// 主要用于辅助推导乘除法; 否则会因为 Subtract 返回类型为 number | unknown 报错
+type _Subtract&lt;M extends number, N extends number&gt; =
+    NArrayNumber&lt;M&gt; extends [...x: NArrayNumber&lt;N&gt;, ...rest: infer R] ? R['length'] : -1
+
+// 乘法
+type _Multiply&lt;M extends number, N extends number, res extends unknown[]&gt; =
+    N extends 0 ? res['length'] : _Multiply&lt;M, _Subtract&lt;N, 1&gt;, [...NArray&lt;number, M&gt;, ...res]&gt;
+export type Multiply&lt;M extends number, N extends number&gt; = _Multiply&lt;M, N, []&gt;
+
+// 除法
+type _DivideBy&lt;M extends number, N extends number, res extends unknown[]&gt; =
+    M extends 0 ? res["length"] : _Subtract&lt;M, N&gt; extends -1 ? unknown : _DivideBy&lt;_Subtract&lt;M, N&gt;, N, [unknown, ...res]&gt;
+export type DividedBy&lt;M extends number, N extends number&gt; = N extends 0 ? unknown : _DivideBy&lt;M, N, []&gt;;</code></pre></div><h3>词法分析</h3><p data-pid="jXuJ2wRX">词法分析过程也比较简单，我挑选 Lisp 的语法进行实现，就是因为 Lisp S 表达式非常容易解析，解析的过程非常简单，核心代码如下，整体逻辑就是一种类型一种类型的 Token 逐个尝试，直到试到能被解析的为止，并进行下一步：</p><div class="highlight"><pre><code class="language-text">type Tokenize&lt;Input extends string, Tokens extends TokenType[] = []&gt;
+    = Input extends '' ? TokenResult&lt;Tokens, ''&gt;
+    : ParseSpace&lt;Input&gt; extends TokenResult&lt;infer R, infer Next&gt; ? Tokenize&lt;Next, [...Tokens, ...R]&gt;
+    : ParseIdentifier&lt;Input&gt; extends TokenResult&lt;infer R, infer Next&gt; ? Tokenize&lt;Next, [...Tokens, ...R]&gt;
+    : ParseNumber&lt;Input&gt; extends TokenResult&lt;infer R, infer Next&gt; ? Tokenize&lt;Next, [...Tokens, ...R]&gt;
+    : ParsePair&lt;Input&gt; extends TokenResult&lt;infer R, infer Next&gt; ? Tokenize&lt;Next, [...Tokens, ...R]&gt;
+    : ParseSymbol&lt;Input&gt; extends TokenResult&lt;infer R, infer Next&gt; ? Tokenize&lt;Next, [...Tokens, ...R]&gt;
+    : TokenError&lt;'Unexpted char'&gt;</code></pre></div><p data-pid="Thez7iDM"><code>ParseXXX</code> 的实现都是从头一个一个字符尝试，匹配的技巧字匹配模式小结讲过，尝试到不能解析的位置为止，比如以 <code>ParseIndentifier</code> 为例：</p><div class="highlight"><pre><code class="language-text">type ParseIdentifier&lt;Input extends string&gt;
+    = Input extends `${infer Char}${infer Next}` ? (
+        Char extends AlphaChars ? _ParseIdentifierBody&lt;Next, Char&gt;
+        : TokenError&lt;'Can not match identifier'&gt;
+    )
+    : TokenError&lt;'Can not match identifier'&gt;
+    ;
+
+type _ParseIdentifierBody&lt;Input extends string, Matched extends string&gt;
+    = Input extends `${infer Char}${infer Next}` ? (
+        Char extends AlphaChars | NumberChars ? _ParseIdentifierBody&lt;Next, `${Matched}${Char}`&gt;
+        : TokenResult&lt;[Matched], Input&gt;
+    )
+    : TokenResult&lt;[Matched], Input&gt;
+    ;</code></pre></div><p data-pid="KsJJbGZI">经过这个过程，最后将一串字符串转换成一串 Token 数组：</p><img loading="lazy" onerror="this.src='https://collection.sduoooh.me/【小号存档】TypeScript_类型体操天花板，用类型运算写一个_Lisp_解释器626636607/img/2.jpg';this.onerror=null;" src="./img/2.jpg" aspect-ratio ="2.630350194552529"><h3>语法分析</h3><p data-pid="jV0AGQLC">语法分析部分核心代码如下所示，核心过程就是：</p><ol><li data-pid="CuZs8h_c">如果遇到 <code>(</code> 符号入栈</li><li data-pid="Arhdpbof">如果遇到 <code>)</code> 符号出栈，讲栈顶一整个数组当成一个项加入新的栈顶的数组</li><li data-pid="ltM8S-M8">如果遇到其他符号，直接将符号加入栈顶的数组</li></ol><div class="highlight"><pre><code class="language-text">type NodeType = TokenType | NodeType[];
+type _SafeTokens&lt;Tokens&gt; = Safe&lt;Tokens, TokenType[], []&gt;;
+type _SafeToken&lt;Token&gt; = Safe&lt;Token, TokenType, 0&gt;;
+
+type NodeStackType = NodeType[][];
+type NodeStackPush&lt;Stack extends NodeStackType, Top extends NodeType[],&gt; = [...Stack, Top];
+type NodeStackPopResult&lt;Stack extends NodeStackType, Top extends NodeType[]&gt; = { stack: Stack, top: Top };
+type NodeStackPop&lt;Stack extends NodeStackType&gt;
+    = Stack extends [...infer Tail, infer Top] ? NodeStackPopResult&lt;Safe&lt;Tail, NodeStackType, []&gt;, Safe&lt;Top, NodeType[], []&gt;&gt;
+    : ErrorResult&lt;'Can not pop empty stack'&gt;;
+
+type ParseError = ErrorResult&lt;'ParseError'&gt;;
+
+type _Parse&lt;Tokens extends TokenType[], Stack extends NodeStackType = [[]]&gt;
+    = Tokens extends [infer Token, ...infer Next] ? (
+        Token extends '(' ? _Parse&lt;_SafeTokens&lt;Next&gt;, NodeStackPush&lt;Stack, []&gt;&gt;
+        : NodeStackPop&lt;Stack&gt; extends NodeStackPopResult&lt;infer TailStack, infer Top&gt; ? (
+            Token extends ')' ? (
+                NodeStackPop&lt;TailStack&gt; extends NodeStackPopResult&lt;infer _TailStack, infer _Top&gt;
+                ? _Parse&lt;_SafeTokens&lt;Next&gt;, NodeStackPush&lt;_TailStack, [..._Top, Top]&gt;&gt;
+                : ParseError
+            )
+            : _Parse&lt;_SafeTokens&lt;Next&gt;, NodeStackPush&lt;TailStack, [...Top, Safe&lt;Token, TokenType, 0&gt;]&gt;&gt;
+        )
+        : ParseError
+    )
+    : Stack;</code></pre></div><h3>声明变量和函数</h3><p data-pid="vAoQ6LRQ">带代码执行的过程中，需要有一个环境来维持代码所以来的变量，比如我们需要执行 <code>x + 1</code> ，这个表达式无法直接运算，而是现需要从环境里面找到 <code>x</code> 是多少才能进行运算。所以我们先要声明环境的类型，并且定义好在环境连怎么存变量和函数：</p><div class="highlight"><pre><code class="language-text">type Func&lt;Args extends string[], Body extends NodeType&gt; = { args: Args, body: Body }
+type FuncType = Func&lt;string[], NodeType&gt;
+type ValueType = number | FuncType;
+type EnvType = { [name: string]: ValueType }
+type MergeEnv&lt;Env extends EnvType, Append extends EnvType&gt; = Omit&lt;Env, keyof Append&gt; &amp; Append;</code></pre></div><p data-pid="0JsHUIhe">在代码执行到 <code>def</code> 的时候，需要将变量和函数的声明放到环境中：</p><div class="highlight"><pre><code class="language-text">type _DefStat&lt;Name extends string, Expr extends NodeType&gt; = ['def', Name, Expr];
+type _DefFunc&lt;Name extends string, Args extends string[], Body extends NodeType&gt; = ['def', Name, Args, Body];
+
+type _EvalProgram&lt;Stats extends NodeType[], Env extends EnvType, R extends number&gt;
+    = Stats extends [infer Stat, ...infer NextStats] ? (
+        NextStats extends NodeType[] ? (
+            Stat extends _DefFunc&lt;infer Name, infer Args, infer Body&gt; ? (
+                _EvalProgram&lt;NextStats, MergeEnv&lt;Env, { [name in Name]: Func&lt;Args, Body&gt; }&gt;, 0&gt;
+            )
+            : Stat extends _DefStat&lt;infer Name, infer Expr&gt; ? (
+                _EvalExpr&lt;[EvalStackFrame&lt;'id', [Expr], [], Env&gt;]&gt; extends EvalResult&lt;infer R, infer _&gt; ? (
+                    _EvalProgram&lt;NextStats, MergeEnv&lt;Env, { [name in Name]: R }&gt;, R&gt;
+                )
+                : EvalError&lt;'8'&gt;
+            )
+            : Stat extends NodeType ? (
+                _EvalExpr&lt;[EvalStackFrame&lt;'id', [Stat], [], Env&gt;]&gt; extends EvalResult&lt;infer R, infer _&gt; 
+                    ? _EvalProgram&lt;NextStats, Env, R&gt; 
+                    : EvalError&lt;'7'&gt;
+            )
+            : EvalError&lt;'9'&gt;
+        )
+        : EvalError&lt;'10'&gt;
+    )
+    : EvalResult&lt;R, Env&gt;
+    ;</code></pre></div><p data-pid="PcmxxjKC">最后的效果就是下面这幅图的 <code>env</code> 字段里面环境：</p><img loading="lazy" onerror="this.src='https://collection.sduoooh.me/【小号存档】TypeScript_类型体操天花板，用类型运算写一个_Lisp_解释器626636607/img/3.jpg';this.onerror=null;" src="./img/3.jpg" aspect-ratio ="2.0817843866171004"><h3>对表达式进行求值</h3><p data-pid="m8Hmc888">这里对表达式求值跟递归与尾递归章节类似，唯一的区别就是在运算的过程中会带着 <code>Env</code> 参数，这里面存着当前环境里面变量的值。核心代码如下：</p><div class="highlight"><pre><code class="language-text">type _EvalExpr&lt;Stack extends EvalStackType&gt;
+    = EvalStackPop&lt;Stack&gt; extends EvalStackPopResult&lt;infer TailStack, infer Frame&gt; ? (
+        Frame extends EvalStackFrame&lt;infer Callee, infer Left, infer Right, infer Env&gt; ?
+        [Callee, Right, Left] extends ['if', [infer Test], [infer Consequent, infer Alternate]] ? (
+            Test extends 0 ? _Return&lt;Safe&lt;Alternate, NodeType, 0&gt;, TailStack&gt;
+            : _Return&lt;Safe&lt;Consequent, NodeType, 0&gt;, TailStack&gt;
+        )
+        : (Left extends [infer E, ...infer Next] ? (
+            E extends number ? _EvalExpr&lt;EvalStackPush&lt;TailStack, EvalStackFrame&lt;Callee, Safe&lt;Next, NodeType[], []&gt;, [...Right, E], Env&gt;&gt;&gt;
+            : E extends string ? (
+                Env[E] extends number ? _EvalExpr&lt;EvalStackPush&lt;TailStack, EvalStackFrame&lt;Callee, Safe&lt;Next, NodeType[], []&gt;, [...Right, SafeNum&lt;Env[E]&gt;], Env&gt;&gt;&gt;
+                : EvalError&lt;'0'&gt;
+            )
+            : E extends [infer NextCallee, ...infer NextLeft] ? (
+                NextCallee extends string ? (
+                    NextLeft extends NodeType[] ? (
+                        _EvalExpr&lt;
+                            EvalStackPush&lt;
+                                EvalStackPush&lt;TailStack, EvalStackFrame&lt;Callee, Safe&lt;Next, NodeType[], []&gt;, Right, Env&gt;&gt;,
+                                EvalStackFrame&lt;NextCallee, NextLeft, [], Env&gt;
+                            &gt;
+                        &gt;
+                    ) : EvalError&lt;'1'&gt;
+                ) : EvalError&lt;'2'&gt;
+            )
+            : EvalError&lt;'3'&gt;
+        )
+            : (
+                [Callee, Right] extends ['+', [infer L, infer R]] ? _Return&lt;SafeNum&lt;Add&lt;SafeNum&lt;L&gt;, SafeNum&lt;R&gt;&gt;&gt;, TailStack&gt;
+                : [Callee, Right] extends ['-', [infer L, infer R]] ? _Return&lt;SafeNum&lt;Subtract&lt;SafeNum&lt;L&gt;, SafeNum&lt;R&gt;&gt;&gt;, TailStack&gt;
+                : [Callee, Right] extends ['!=', [infer L, infer R]] ? _Return&lt;L extends R ? 0 : 1, TailStack&gt;
+                : [Callee, Right] extends ['==', [infer L, infer R]] ? _Return&lt;L extends R ? 1 : 0, TailStack&gt;
+                : [Callee, Right] extends ['id', [infer V]] ? _Return&lt;Safe&lt;V, NodeType, 0&gt;, TailStack&gt;
+                : (
+                    Env[Callee] extends Func&lt;infer Names, infer Body&gt;
+                    ? _EvalExpr&lt;EvalStackPush&lt;TailStack, EvalStackFrame&lt;'id', [Body], [], FuncEnv&lt;Names, Right, Env&gt;&gt;&gt;&gt;
+                    : EvalError&lt;'4'&gt;
+                )
+
+            ))
+        : EvalError&lt;'5'&gt;
+    )
+    : EvalError&lt;'6'&gt;;
+
+type _Return&lt;Expr extends NodeType, Stack extends EvalStackType&gt;
+    = EvalStackPop&lt;Stack&gt; extends EvalStackPopResult&lt;infer TailStack, EvalStackFrame&lt;infer Callee, infer Left, infer Right, infer Env&gt;&gt;
+    ? (
+        Expr extends number ? _EvalExpr&lt;EvalStackPush&lt;TailStack, EvalStackFrame&lt;Callee, Left, [...Right, Expr], Env&gt;&gt;&gt;
+        : _EvalExpr&lt;EvalStackPush&lt;TailStack, EvalStackFrame&lt;Callee, [Expr, ...Left], Right, Env&gt;&gt;&gt;
+    ) : (
+        Expr extends number ? EvalResult&lt;Expr, {}&gt;
+        : EvalError&lt;'7'&gt;
+    )</code></pre></div><p data-pid="aKOR3Jj7">需要着重注意的是 <code>if</code> 表达式需要先计算条件表达式是否为 <code>true</code> 以后才会去执行后面的表达式，所以 <code>if</code> 需要单独处理。</p><p data-pid="6f2ivUxG">另外考虑函数是如何调用的？其实这里的函数调用非常简单，我们只需要把函数调用替换成一个带着参数环境的表达式即可，处理的过程甚至比 <code>if</code> 还更简单。</p><h2>写在最后</h2><p data-pid="1qWEobD4">写完这篇文章以后我已经不准备在玩类型体操了，真的玩到天花板了，接下来研究的方向应该是深入 TypeScript 类型系统本身，看看还有没有什么能做。</p><p data-pid="vc8mlcEz">完结撒花~</p></div><link href="../style.css" rel="stylesheet"/><div class="ContentItem-time" role="button" tabindex="0"><a href="https://zhuanlan.zhihu.com/p/626636607">发布于 2023-05-04 12:21</a><span>・IP 属地河北</span></div></div>
