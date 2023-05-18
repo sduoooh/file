@@ -1,0 +1,5 @@
+没人说这个 GNU C 库里的著名注释吗 :-)/* C89/C99 say they're macros. 
+   Make them happy.  */
+#define stdin stdin
+#define stdout stdout
+#define stderr stderr
