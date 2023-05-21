@@ -1,0 +1,85 @@
+我十分反感一个协程池要写数千行代码，协程池就应该简单，实用，而不是显摆自己的技术多么高超，这是知乎上多数开发者都会犯的毛病。所以我在此分享一个没什么名气的，简单的，实用的协程池，原作者是Gobwas，他曾经写过一篇文章A Million WebSockets and Go 这个协程池是他提到的关于如何解决巨大连接数量Websocket的一个解决方案。package gopool
+
+import (
+	"fmt"
+	"time"
+)
+
+// ErrScheduleTimeout returned by Pool to indicate that there no free
+// goroutines during some period of time.
+var ErrScheduleTimeout = fmt.Errorf("schedule error: timed out")
+
+// Pool contains logic of goroutine reuse.
+type Pool struct {
+	sem  chan struct{}
+	work chan func()
+}
+
+// NewPool creates new goroutine pool with given size. It also creates a work
+// queue of given size. Finally, it spawns given amount of goroutines
+// immediately.
+func NewPool(size, queue, spawn int) *Pool {
+	if spawn <= 0 && queue > 0 {
+		panic("dead queue configuration detected")
+	}
+	if spawn > size {
+		panic("spawn > workers")
+	}
+	p := &Pool{
+		sem:  make(chan struct{}, size),
+		work: make(chan func(), queue),
+	}
+	for i := 0; i < spawn; i++ {
+		p.sem <- struct{}{}
+		go p.worker(func() {})
+	}
+
+	return p
+}
+
+// Schedule schedules task to be executed over pool's workers.
+func (p *Pool) Schedule(task func()) {
+	p.schedule(task, nil)
+}
+
+// ScheduleTimeout schedules task to be executed over pool's workers.
+// It returns ErrScheduleTimeout when no free workers met during given timeout.
+func (p *Pool) ScheduleTimeout(timeout time.Duration, task func()) error {
+	return p.schedule(task, time.After(timeout))
+}
+
+func (p *Pool) schedule(task func(), timeout <-chan time.Time) error {
+	select {
+	case <-timeout:
+		return ErrScheduleTimeout
+	case p.work <- task:
+		return nil
+	case p.sem <- struct{}{}:
+		go p.worker(task)
+		return nil
+	}
+}
+
+func (p *Pool) worker(task func()) {
+	defer func() { <-p.sem }()
+
+	task()
+
+	for task := range p.work {
+		task()
+	}
+}调用方法十分简单：原本：go func(){
+doXXX()
+}()使用协程池：pool := gopool.NewPool(1024, 1024, 1024) // 限制1024个协程
+pool.Schedule(func () {
+doXXX()
+})
+Benchmark结果BenchmarkNaive
+BenchmarkNaive-8   	   10000	      1136 ns/op	     225 B/op	       2 allocs/op
+BenchmarkPool
+BenchmarkPool-8    	   10000	       727.9 ns/op	     107 B/op	       2 allocs/op
+
+BenchmarkNaive
+BenchmarkNaive-8   	 2458435	       421.6 ns/op	      96 B/op	       2 allocs/op
+BenchmarkPool
+BenchmarkPool-8    	 1739314	       708.9 ns/op	      16 B/op	       1 allocs/op
