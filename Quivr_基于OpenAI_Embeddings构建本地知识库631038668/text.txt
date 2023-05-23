@@ -1,0 +1,55 @@
+一、Quivr介绍Quivr可以帮助把你的本地文件向量化，然后存储到云端，随时可以查询对话。文档格式支持Text、Markdown、 PDF、音频和视频。GPT端支持ChatGPT-3/4和Claude。 向量数据库使用的是Supabase ，音视频是基于Whisper的API处理成文本的，主要语言是Python开发。Quivr可以将我们的本地文件存储在向量数据库中，然后存储到云端，随时可以查询对话。使用 OpenAI 的 GPT-3/4 或者Claude 100k对其进行查询。Quivr是一个功能强大而高效的数据管理工具。它可以轻松地处理各种类型的数据，无论是文本、图像还是代码片段等等。Quivr兼容多种文件格式，包括文本、Markdown、PDF、Powerpoint、Excel、Word、音频和视频，使其成为一个非常适合多样化需求的数据管理工具。Quivr采用先进的人工智能技术，可帮助您生成和检索信息，让您的数据管理更加智能和高效。这款设计迅捷高效的工具确保您在访问和使用数据时得到最快的响应速度。Quivr的速度和效率会在日常工作中让您受益无穷。您的数据始终处于您的掌控之下，Quivr保证您的数据安全性，让您放心使用。此外，Quivr开源且免费使用，让您更加自由地使用这个优秀的工具。注意：在公开的演示系统中，因为功能访问受到限制。只能使用 GPT-3.5-turbo 模型并上传最大 1Mb 的文件。如果需要使用更多模型并上传更大的文件，需要自行部署 Quivr托管。项目地址：https://github.com/StanGirard/quivr二、Quivr特性存储任何文件：Quivr可以处理几乎所有类型的数据。文本、图像、代码片段等等，您只需要说出来。生成式人工智能：Quivr使用先进的人工智能技术来帮助您生成和检索信息。快速高效：Quivr专为速度和效率而设计，以确保您能够尽快访问自己的数据。安全可靠：您的数据始终在您的控制下。兼容文件格式： TXT、CSV、MD、MARKDOWN、M4A、MP3、WEBM、MP4、MPGA、WAV、MPEG、PDF、HTML、PPTX、DOCX（每个文件限制200M）开源免费：Quivr是开源的，并且可以免费使用。三、Quivr演示接下来我们会基于GPT-3.5、GPT-4、Claude 100K三种GPT模型来演示Quivr上传本地文件到向量数据库并及时进行文本内容检索。3.1、基于GPT-3.5模型演示3.2、基于GPT-4模型演示3.3、基于Claude 100k context模型演示四、Quivr部署4.1、前提条件在继续部署之前，请确保已安装以下内容:DockerDocker Compose您还需要Supabase账户，以获得以下内容：新建Supabase项目Supabase项目API密钥Supabase项目URL4.2、安装Quivr4.2.1、克隆存储库git clone git@github.com:StanGirard/Quivr.git && cd Quivr因为包含隐藏文件，可以使用 ls -alh 命令查看所有文件4.2.2、复制.XXXXX_env文件cp .backend_env.example .backend_env
+cp .frontend_env.example .frontend_env4.2.3、更新.backend_env文件SUPABASE_URL=""
+SUPABASE_SERVICE_KEY="eyXXXXX"
+OPENAI_API_KEY="sk-XXXXXX"
+anthropic_api_key="XXXXXX"请注意，supabase_url在您的Supabase仪表板下的项目设置-> API中对应的Project URL，supabase_service_key在您的Supabase仪表板下的项目设置-> API中找到。使用“Project API keys”部分中找到的anon public键。4.2.4、创建Supabase数据库和表通过Web界面（SQL编辑器->“新查询”）在Supabase数据库上运行以下迁移脚本-- Enable the pgvector extension to work with embedding vectors
+       create extension vector;
+
+       -- Create a table to store your documents
+       create table documents (
+       id bigserial primary key,
+       content text, -- corresponds to Document.pageContent
+       metadata jsonb, -- corresponds to Document.metadata
+       embedding vector(1536) -- 1536 works for OpenAI embeddings, change if needed
+       );
+
+       CREATE FUNCTION match_documents(query_embedding vector(1536), match_count int)
+           RETURNS TABLE(
+               id bigint,
+               content text,
+               metadata jsonb,
+               -- we return matched vectors to enable maximal marginal relevance searches
+               embedding vector(1536),
+               similarity float)
+           LANGUAGE plpgsql
+           AS $$
+           # variable_conflict use_column
+       BEGIN
+           RETURN query
+           SELECT
+               id,
+               content,
+               metadata,
+               embedding,
+               1 -(documents.embedding <=> query_embedding) AS similarity
+           FROM
+               documents
+           ORDER BY
+               documents.embedding <=> query_embedding
+           LIMIT match_count;
+       END;
+       $$;andcreate table
+  stats (
+    -- A column called "time" with data type "timestamp"
+    time timestamp,
+    -- A column called "details" with data type "text"
+    chat boolean,
+    embedding boolean,
+    details text,
+    metadata jsonb,
+    -- An "integer" primary key column called "id" that is generated always as identity
+    id integer primary key generated always as identity
+  );4.2.5、构建并启动Quivrdocker-compose build && docker-compose up温馨提示：这个启动过程需要安装非常多的依赖库，时间会根据你的网络情况不太一样，如果执行过程中出错，可以检查一下Docker和Python的版本是否是比较新的，如果是因为中途下载以来超时，可以继续再执行一下，不出意外，看到下面的输出信息说明已成功构建并启动前端和后端应用。4.2.6、访问Quivr启动成功后在浏览器直接访问3000端口，可以看到项目主页：五、实现原理Quivr兼容多种文件格式，包括文本、Markdown、PDF、Powerpoint、Excel、Word、音频和视频，使其成为一个非常适合多样化需求的数据管理工具。5.1、文件加载器（计算元数据）例如上传Markdown文件时会调用Markdown Loader。（使用LangChainAI实现）1、加载 Markdown2 - 计算文件的 SHA13 - 添加 SHA1 作为元数据4 - 添加到Supabase vectorstore ,下次如果文件具有相同的 SHA1 则不会上传5.2、文件存储（拆分&向量化）然后将文档拆分并存储到Supabase vectorstore中，存储的主要信息包括：1 - 它是文件的内容2 - 文件的元数据信息3 - 使用OpenAI Embeddings来计算文件的向量值5.3、重复文件校验文件已经上传，每当上传新文件时：1 - 通过计算文件 SHA1 来检查它是否已经存在2 - 通过查询Supabase元数据列来检查它5.4、模型选择1 - 选择模型（GPT3.5 或 GPT4）2 - 使用Supabase vectorstore 创建 CoversationalRetrievalChain3 - 发送问题，然后在Streamlit中显示查询结果5.5、文件上传现在我们可以上传文件，例如 Markdown，音频文件（将由 Whisper 转录为文本）后上传到Supabase中5.6、对话检索最后使用OpenAI GPT4 或 GPT3.5 的接口查询六、FAQ6.1、Docker建议安装最新的版本不能低于17，否则会出现不支持--iidfile的错误，安装新版本需要先卸载老版本，具体可查阅官方文档：https://docs.docker.com/engine/install/centos/。--iidfile 标志是在 Docker 17.05 版本中引入的。因此，如果您使用的是 Docker 17.05 版本或更高版本，则应该支持 --iidfile 标志。如果您使用的是旧版本的 Docker，则可能不支持 --iidfile 标志。6.2、Python版本需要安装3.11版本在 CentOS 中将 安装Python 3.11首先，您需要安装 EPEL 存储库。EPEL 存储库包含许多额外的软件包，这些软件包不包含在 CentOS 的官方存储库中。您可以使用以下命令安装 EPEL 存储库：sudo yum install epel-release接下来，您需要安装一些必要的软件包和工具，以便编译 Python 3.11。您可以使用以下命令安装这些软件包：sudo yum install gcc openssl-devel bzip2-devel libffi-devel zlib-devel wget然后，您需要下载 Python 3.11 的源代码。您可以从 Python 官方网站下载最新版本的源代码，然后使用以下命令下载并解压缩源代码：wget https://www.python.org/ftp/python/3.11.0/Python-3.11.0.tgz
+tar xzf Python-3.11.0.tgz接下来，进入解压缩后的 Python 源代码目录，并使用以下命令编译和安装 Python 3.11：cd Python-3.11.0
+./configure --enable-optimizations
+make altinstall注意，使用 make altinstall 命令而不是 make install 命令，这将确保您的系统上同时存在 Python 2.7 和 Python 3.11。最后，您需要验证 Python 3.11 是否正确安装。您可以使用以下命令检查 Python 3.11 的版本：python3.11 --version如果您看到类似于以下内容的输出，则表示 Python 3.11 已经成功安装：Python 3.11.0请注意，升级 Python 版本可能会影响到系统的其他部分，因此请在操作之前备份您的系统，并确保您知道如何恢复到先前的状态。

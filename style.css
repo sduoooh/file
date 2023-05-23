@@ -37,14 +37,12 @@
     }
 
     .CollectionItem blockquote {
-        margin:1.4em 0;
         padding-left:1em;
         color:#646464;
         border-left:3px solid #D3D3D3;
        }
        .CollectionItem ol,
        .CollectionItem ul {
-        margin:1.4em 0;
         padding:0;
        }
        .CollectionItem ol ol,
@@ -86,7 +84,6 @@
        }
        .CollectionItem * > a {
         display: inline;
-        margin-left: 0.5rem;
         margin-right: 0.5rem; 
        }
        .CollectionItem ol {
@@ -156,9 +153,6 @@
         white-space:pre-wrap;
        }
 
-       .CollectionItem .highlight {
-        margin:1em 0;
-       }
        .CollectionItem .highlight pre {
         margin:0;
        }
